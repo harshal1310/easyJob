@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiter Dashboard</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #f1f1f1;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #e0e0e0;
+            padding: 10px;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        nav li {
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: black;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: 100%;
+        }
+
+        .popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #3e8e41;
+        }
+
+        .job-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .job-item {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Recruiter Dashboard</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="showRecruiterDashboard">Jobs</a></li>
+            <li><a href="short">Shorlisted For Interview</a></li>
+            <li><a href="hired">Hired</a></li>
+           
+        </ul>
+    </nav>
+<main>
+    <h2>Job Postings</h2>
+    <ul class="job-list">
+        <% jobPostData.forEach(function(job) { %>
+            <li class="job-item">
+                <h3><%= job.job_title %></h3>
+                <p>Location: <%= job.location %></p>
+                <p>Description: <%= job.job_description %></p>
+                <p>Skills required: <%= job.skills %></p>
+            </li>
+        <% }); %>
+    </ul>
+</main>

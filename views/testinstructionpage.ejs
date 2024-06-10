@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment Setup</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: #f8f8f8;
+        }
+
+        .logo {
+            width: 100px;
+        }
+
+        .user {
+            display: flex;
+            align-items: center;
+        }
+
+        .username {
+            margin-right: 1rem;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .info {
+            margin-top: 2rem;
+            border-left: 2px solid #ddd;
+            padding-left: 1rem;
+        }
+
+        .info h2 {
+            margin-bottom: 1rem;
+        }
+
+        .info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info li {
+            margin-bottom: 0.5rem;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="logo.png" alt="TestGorilla Logo">
+        </div>
+        <div class="user">
+            <span class="username">Hello Ash,</span>
+        </div>
+    </header>
+    <main>
+        <h1>A few things before you start</h1>
+        <p>Thank you for applying and welcome to our assessment.</p>
+        <p>This assessment consists of 4 tests and 5 individual custom questions.</p>
+        <p>Completing it will give you a chance to show off your skills and stand out from the crowd!</p>
+        <div class="info">
+            <h2>Important information</h2>
+            <ul>
+                <li>The assessment is timed. A timer is shown per test or per question.</li>
+                <li>Before each test there may be preview questions, be aware the timer for the test will have already started.</li>
+                <li>1 file upload question is part of the assessment.</li>
+                <li>Please allow the use of your camera/webcam and do not leave fullscreen mode. Snapshots will be taken of you periodically during the assessment. These measures are taken to ensure fairness for everyone.</li>
+                <li>Turn on your speakers or headphones (to play audio).</li>
+                <li>You are free to use a calculator, pen and paper.</li>
+                <li>We recommend completing the assessment in one go.</li>
+            </ul>
+        </div>
+<button type="button" id="get-started" data-jobid="<%= jobId %>">Get started ></button>
+    </main>
+    <footer>
+        <p>&#169; 24-01-2021</p>
+    </footer>
+    <script>
+        const getStartedButton = document.getElementById('get-started');
+
+        getStartedButton.addEventListener('click', () => {
+ const jobId = getStartedButton.getAttribute('data-jobid');
+        // Now you can use jobId as needed, for example, redirect to the assessment page with the jobId
+        window.location.href = `/test/${jobId}/startExam`;        });
+    </script>
+</body>
+</html>

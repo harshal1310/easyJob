@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestGorilla Practice Question</title>
+<style>
+/* CSS styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+#timer {
+  font-size: 20px;
+}
+
+#question-timer {
+  font-size: 20px;
+  margin-top: 20px; /* Add top margin */
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+}
+
+.left-container {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-container {
+  width: 200px; /* Reduced width */
+  padding: 20px;
+  background-color: #f8f8f8;
+}
+
+.question-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* Reduced gap */
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.question-buttons button {
+  width: 28px; /* Reduced size */
+  height: 28px; /* Reduced size */
+  border: none;
+  border-radius: 50%;
+  background-color: #ddd;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.question-buttons button.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.question-buttons button:hover {
+  background-color: #45a049;
+  color: white;
+}
+
+.question-container {
+  border: 2px solid black;
+  padding: 10px;
+  margin-bottom: 20px;
+  height: 200px; /* Adjusted height */
+  max-width: 600px; /* Adjusted width */
+  overflow-y: auto; /* Scroll if content overflows */
+}
+
+.answer-options label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+footer {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 8px 16px; /* Reduced padding */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.submit-button {
+  background-color: #f44336; /* Red color */
+}
+
+.submit-button:hover {
+  background-color: #d32f2f; /* Darker red color */
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<header>
+  <span id="timer"></span>
+  <span id="question-timer">30</span> <!-- Timer for each question -->
+</header>
+<div class="main-content">
+  <div class="left-container">
+    <div class="question-container" id="question-container">
+      <!-- Question content will be loaded here -->
+    </div>
+    <div class="answer-options" id="answer-options">
+      <!-- Answer options will be loaded here -->
+    </div>
+    <div class="buttons-container">
+      <button id="save-and-next" onclick="saveAndNext()">Save & Next</button>
+      <button id="clear-response" onclick="clearResponse()">Clear Response</button>
+    </div>
+    <button id="submit" class="submit-button" style="display:none;" onclick="submitExam()">Submit Exam</button>
+  </div>
+  <div class="right-container">
+    <ul class="question-buttons">
+      <!-- Question buttons will be generated here -->
+    </ul>
+  </div>
+</div>
+
+<script>
+let currentQuestionNumber = 1; // Declare currentQuestionNumber as a global variable
+let questionTimer; // Timer for each question
+const questionDuration = 30; // Duration for each question in seconds
+
+function showQuestion(questionNumber) {
+  const jobId = '<%= jobId %>';
+
+  currentQuestionNumber = questionNumber;
+  fetch(`/api/questions/${questionNumber}/${jobId}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch question data');
+      }
+      return response.json();
+    })
+    .then(questionData => {
+      renderQuestion(questionData);
+      highlightCurrentQuestionButton();
+      startQuestionTimer(); // Start the timer for the question
+    })
+    .catch(error => {
+      console.error(error);
+    });
+}
+
+function renderQuestion(questionData) {
+  const questionContainer = document.getElementById('question-container');
+  const answerOptionsContainer = document.getElementById('answer-options');
+  if (!questionContainer || !answerOptionsContainer) {
+    console.error('Question or answer options container not found.');
+    return;
+  }
+  const questionContent = questionData.question || 'No question available'; // Default message if question is missing
+  const answerOptions = questionData.options ? questionData.options.map((option, index) => `
+    <label for="option-${index}">
+      <input type="radio" id="option-${index}" name="options" value="${index + 1}" ${index + 1 === questionData.selectedOption ? 'checked' : ''}>
+      ${option}
+    </label>
+  `).join('') : 'No options available';
+
+  questionContainer.innerHTML = `
+    <h2>Question ${currentQuestionNumber}</h2>
+    <p>${questionContent}</p>
+  `;
+  answerOptionsContainer.innerHTML = answerOptions;
+}
+
+async function saveAndNext() {
+  const jobId = '<%= jobId %>';
+
+  try {
+    let optionValue = 0;
+    const selectedOption = document.querySelector('input[name="options"]:checked');
+    if (selectedOption) {
+      optionValue = selectedOption.value;
+    }
+
+    const response = await fetch(`/api/candidate/responses/${jobId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ questionNumber: currentQuestionNumber, optionValue: optionValue })
+    });
+    if (!response.ok) {
+      throw new Error('Failed to save response');
+    }
+    const nextQuestionNumber = currentQuestionNumber + 1; // Load next question
+    if (nextQuestionNumber > 4) {
+      submitExam(); // Automatically submit exam on 5th question
+    } else {
+      await showQuestion(nextQuestionNumber);
+      if (nextQuestionNumber > 7) {
+        document.getElementById('submit').style.display = 'inline-block'; // Show submit button on 8th question
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Failed to save response. Please try again.');
+  }
+}
+
+function clearResponse() {
+  const selectedOption = document.querySelector('input[name="options"]:checked');
+  if (selectedOption) {
+    selectedOption.checked = false; // Uncheck the selected option
+  }
+}
+
+async function submitExam() {
+  try {
+    // Perform actions to submit the exam
+    alert('Exam submitted successfully!');
+    window.location.href = '/addQuesstions';
+  } catch (error) {
+    console.error(error);
+    alert('Failed to submit exam. Please try again.');
+  }
+}
+
+// Function to generate question buttons dynamically
+function generateQuestionButtons() {
+  const questionButtonsContainer = document.querySelector('.question-buttons');
+  if (!questionButtonsContainer) {
+    console.error('Question buttons container not found.');
+    return;
+  }
+ 
+}
+
+// Highlight the current question button
+function highlightCurrentQuestionButton() {
+  const buttons = document.querySelectorAll('.question-buttons button');
+  buttons.forEach((button, index) => {
+    if (index + 1 === currentQuestionNumber) {
+      button.classList.add('active');
+    } else {
+      button.classList.remove('active');
+    }
+  });
+}
+
+// Timer for each question
+function startQuestionTimer() {
+  clearInterval(questionTimer); // Clear any existing timer
+  let timeLeft = questionDuration; // Reset time for each question
+  const timerDisplay = document.getElementById('question-timer');
+  timerDisplay.textContent = timeLeft;
+
+  questionTimer = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = timeLeft;
+    if (timeLeft === 0) {
+      clearInterval(questionTimer);
+      saveAndNext(); // Automatically move to next question when time runs out
+    }
+  }, 1000);
+}
+
+// Call the functions to generate question buttons when the page loads
+window.onload = function () {
+  generateQuestionButtons();
+  showQuestion(1);
+};
+
+</script>
+</body>
+</html>
