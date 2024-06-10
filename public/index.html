@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Quiz</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        #quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        input[type="radio"] {
+            margin-right: 5px;
+        }
+		
+		 .submit-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background-color: #0056b3;
+        }
+		
+    </style>
+</head>
+<body>
+    <div id="quiz-container">
+        <h1>Online Quiz</h1>
+        <ul id="question-list">
+            <!-- Questions and options will be loaded here -->
+        </ul>
+        <button onclick="submitQuiz(candidateId, testId)">Submit Quiz</button> <!-- Add submit button -->
+    </div>
+    
+    <script>
+        // Function to fetch quiz questions from the backend
+        async function fetchQuizQuestions() {
+            try {
+                const response = await fetch('/questions');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch quiz questions');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Function to fetch options for a specific question from the backend
+        async function fetchOptions(questionId) {
+            try {
+                const response = await fetch(`/api/questions/${questionId}/options`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch options');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Function to load and display quiz questions with options
+        async function loadQuiz() {
+            const questionList = document.getElementById('question-list');
+            try {
+                const quizData = await fetchQuizQuestions();
+                quizData.forEach(async (question, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('question'); // Add class for easier selection
+                    listItem.dataset.questionId = question.id; // Add question ID as dataset attribute
+                    listItem.innerHTML = `
+                        <h3>Question ${index + 1}</h3>
+                        <p>${question.question}</p>
+                        <ul id="options-${index}">
+                            <!-- Options will be loaded here -->
+                        </ul>
+                    `;
+                    questionList.appendChild(listItem);
+                    const optionsList = document.getElementById(`options-${index}`);
+                    const options = await fetchOptions(question.id);
+                    options.forEach(option => {
+                        const optionItem = document.createElement('li');
+                        optionItem.innerHTML = `
+                            <input type="radio" id="option-${option.id}" name="question-${index}" value="${option.option_text}">
+                            <label for="option-${option.id}">${option.option_text}</label>
+                        `;
+                        optionsList.appendChild(optionItem);
+                    });
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Call loadQuiz function to load quiz questions with options when the page loads
+        window.addEventListener('load', loadQuiz);
+
+        // Function to submit quiz responses
+        function submitQuiz(candidateId, testId) {
+            const url = '/api/submit-quiz'; // Endpoint to submit quiz
+            const responses = [];
+
+            // Collect responses from the quiz interface
+            const questionElements = document.querySelectorAll('.question');
+            questionElements.forEach((questionElement, index) => {
+                const questionId = questionElement.dataset.questionId;
+                const selectedOption = questionElement.querySelector('input[type="radio"]:checked');
+                if (selectedOption) {
+                    const optionId = selectedOption.id.replace('option-', ''); // Extract option ID from element ID
+                    responses.push({ questionId, optionId });
+                }
+            });
+
+            // Check if all questions have been answered
+            if (responses.length !== questionElements.length) {
+                console.error('Please answer all questions before submitting the quiz.');
+                return;
+            }
+
+            // Prepare the data object to be sent in the fetch request
+            const data = {
+                candidateId: candidateId,
+                testId: testId,
+                responses: responses
+            };
+
+            // Configure the fetch request
+            const requestOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            };
+
+            // Send the fetch request
+            fetch(url, requestOptions)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to submit quiz');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle response data if needed
+                    console.log('Quiz submitted successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error submitting quiz:', error);
+                });
+        }
+    </script>
+</body>
+</html>

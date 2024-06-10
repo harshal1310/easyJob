@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs Listing</title>
+    
+    <style>
+        /* General styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 0 auto;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 40px;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex; /* Display items horizontally */
+        }
+
+        nav ul li {
+            margin-right: 20px;
+        }
+
+        nav ul li:last-child {
+            margin-right: 0;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .search-bar input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Job listing styles */
+        .jobs {
+            margin-top: 20px;
+        }
+
+        .job-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .job-card {
+            flex-basis: calc(50% - 20px); /* Adjust the width of each job card */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+
+        .job-card h3 {
+            margin-top: 0;
+        }
+
+        .job-details ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .job-details ul li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <img src="logo.png" alt="Company Logo">
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="jobs">Jobs</a></li>
+                    <li><a id="shortlistedLink" href="shortlistedForInterview">Shortlisted</a></li>
+					<li><a  href="getSavedJobs">Saved Jobs</a></li>
+															<li><a  href="selectedForJob"> Hired </a></li>
+
+
+                </ul>
+            </nav>
+            <div class="search-bar">
+                <input type="text" placeholder="Type here ">
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="job-list" id="jobList">
+            <!-- Job listings will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        // Fetch data from the API endpoint
+        window.onload = function() {
+            // Fetch data from the API endpoint
+            fetch('/api/shortlistedForInterview')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch data');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Process the fetched data and update the DOM
+                    const jobListContainer = document.getElementById('jobList');
+                    if (!jobListContainer) {
+                        throw new Error('Job list container not found');
+                    }
+                    // Clear previous content
+					
+                    jobListContainer.innerHTML = '';
+
+                    // Loop through the data and create job listings
+                    data.forEach(job => {
+                        const jobCard = document.createElement('div');
+                        jobCard.classList.add('job-card');
+
+                        const jobTitle = document.createElement('h3');
+                        jobTitle.textContent = job.job_title;
+
+                        const jobDescription = document.createElement('p');
+                        jobDescription.textContent = job.job_description;
+
+                        // Append job title and description to job card
+                        jobCard.appendChild(jobTitle);
+                        jobCard.appendChild(jobDescription);
+
+                        // Append job card to job list container
+                        jobListContainer.appendChild(jobCard);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        };
+    </script>
+</body>
+</html>

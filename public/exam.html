@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestGorilla Practice Question</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+#timer {
+  font-size: 20px;
+}
+
+main {
+  padding: 20px;
+}
+
+#question-container {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+#question-container h2 {
+  font-size: 20px;
+  margin-top: 0;
+}
+
+#question-container .time-left {
+  font-size: 14px;
+  color: #999;
+}
+
+.answer-options {
+  margin-top: 10px;
+}
+
+.answer-options label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+footer {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>TestGorilla</h1>
+  <span id="timer">04:19</span>
+</header>
+<main>
+  <div id="question-container">
+    <!-- Question content will be loaded here -->
+  </div>
+  <button onclick="showQuestion(1)">Question 1</button>
+  <button onclick="showQuestion(2)">Question 2</button>
+</main>
+<footer>
+  <p>TestGorilla</p>
+</footer>
+
+<script>
+function showQuestion(questionNumber) {
+  fetch(`/api/questions/${questionNumber}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch question data');
+      }
+      return response.json();
+    })
+    .then(questionData => {
+      renderQuestion(questionData);
+    })
+    .catch(error => {
+      console.error(error);
+    });
+}
+
+function renderQuestion(questionData) {
+  const questionContainer = document.getElementById('question-container');
+  if (!questionContainer) {
+    console.error('Question container not found.');
+    return;
+  }
+  
+  const questionContent = questionData.content || 'No content available'; // Default message if content is missing
+  
+  questionContainer.innerHTML = `
+    <h2>${questionData.question || 'No question available'}</h2>
+    <p>Select only one answer</p>
+    <section>
+      <span class="time-left">5 days</span>
+    </section>
+    <article id="question-content">
+      ${questionContent}
+    </article>
+    <div class="answer-options">
+      ${questionData.options ? questionData.options.map(option => `
+        <label for="option-${option.id}">
+          <input type="radio" id="option-${option.id}" name="options" value="${option.option_text}">
+          ${option.option_text}
+        </label>
+      `).join('') : 'No options available'}
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

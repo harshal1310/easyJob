@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestGorilla Practice Question</title>
+<style>
+/* CSS styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.left-container {
+  width: 50%;
+  padding: 20px;
+  max-width: calc(100% - 220px); /* Adjust the width as needed */
+}
+
+.right-container {
+  width: 200px;
+  padding: 20px;
+}
+
+header {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+#timer {
+  font-size: 20px;
+}
+
+.main-content {
+  display: flex;
+  justify-content: space-between;
+}
+
+.question-buttons {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.question-buttons li {
+  margin-bottom: 5px;
+}
+
+.question-container {
+  border: 2px solid black;
+  padding: 10px;
+  width: 100%;
+}
+
+.answer-options label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+footer {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.submit-button {
+  background-color: #f44336; /* Red color */
+}
+
+.submit-button:hover {
+  background-color: #d32f2f; /* Darker red color */
+}
+</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<header>
+  <span id="timer">02:00</span>
+</header>
+<div class="main-content">
+  <div class="left-container">
+    <div class="question-container" id="question-container">
+      <!-- Question content will be loaded here -->
+    </div>
+    <div class="answer-options" id="answer-options">
+      <!-- Answer options will be loaded here -->
+    </div>
+    <button id="save-and-next" onclick="saveAndNext()">Save & Next</button>
+    <button id="clear-response" onclick="clearResponse()">Clear Response</button>
+    <button id="submit" class="submit-button" style="display:none;" onclick="submitExam()">Submit Exam</button>
+  </div>
+  <div class="right-container">
+    <ul class="question-buttons">
+      <!-- Question buttons will be generated here -->
+    </ul>
+  </div>
+</div>
+
+<script>
+let currentQuestionNumber = 1; // Declare currentQuestionNumber as a global variable
+
+function showQuestion(questionNumber) {
+  currentQuestionNumber = questionNumber;
+  fetch(`/api/questions/${questionNumber}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch question data');
+      }
+      return response.json();
+    })
+    .then(questionData => {
+      renderQuestion(questionData);
+    })
+    .catch(error => {
+      console.error(error);
+    });
+}
+
+function renderQuestion(questionData) {
+  const questionContainer = document.getElementById('question-container');
+  const answerOptionsContainer = document.getElementById('answer-options');
+  if (!questionContainer || !answerOptionsContainer) {
+    console.error('Question or answer options container not found.');
+    return;
+  }
+  const questionContent = questionData.question || 'No question available'; // Default message if question is missing
+  const answerOptions = questionData.options ? questionData.options.map((option, index) => `
+    <label for="option-${index}">
+      <input type="radio" id="option-${index}" name="options" value="${index + 1}" ${index + 1 === questionData.selectedOption ? 'checked' : ''}>
+      ${option}
+    </label>
+  `).join('') : 'No options available';
+  
+  questionContainer.innerHTML = `
+    <h2>Question ${currentQuestionNumber}</h2>
+    <p>${questionContent}</p>
+  `;
+  answerOptionsContainer.innerHTML = answerOptions;
+}
+async function saveAndNext() {
+  try {
+    const selectedOption = document.querySelector('input[name="options"]:checked');
+    let optionValue = 0;
+    if (selectedOption) {
+      optionValue = selectedOption.value;
+    }
+    console.log(optionValue);
+    const response = await fetch('/api/candidate/responses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ questionNumber: currentQuestionNumber, optionValue: optionValue })
+    });
+    if (!response.ok) {
+      throw new Error('Failed to save response');
+    }
+    const nextQuestionNumber = currentQuestionNumber + 1; // Load next question
+    await showQuestion(nextQuestionNumber);
+    if (nextQuestionNumber > 7) {
+      document.getElementById('submit').style.display = 'inline-block'; // Show submit button on 8th question
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Failed to save response. Please try again.');
+  }
+}
+
+function clearResponse() {
+  const selectedOption = document.querySelector('input[name="options"]:checked');
+  if (selectedOption) {
+    selectedOption.checked = false; // Uncheck the selected option
+  }
+}
+
+async function submitExam() {
+  try {
+    // Perform actions to submit the exam
+    alert('Exam submitted successfully!');
+    window.location.href = '/addQuesstions'
+  } catch (error) {
+    console.error(error);
+    alert('Failed to submit exam. Please try again.');
+  }
+}
+
+// Function to generate question buttons dynamically
+function generateQuestionButtons() {
+  const questionButtonsContainer = document.querySelector('.question-buttons');
+  if (!questionButtonsContainer) {
+    console.error('Question buttons container not found.');
+    return;
+  }
+  for (let i = 1; i <= 10; i++) {
+    const button = document.createElement('button');
+    button.textContent = ` ${i}`;
+    button.addEventListener('click', () => showQuestion(i));
+    questionButtonsContainer.appendChild(button);
+  }
+}
+
+// Call the functions to generate question buttons when the page loads
+window.onload = function () {
+  generateQuestionButtons();
+  showQuestion(1); 
+};
+
+// Timer countdown
+let timeLeft = 120; // 2 minutes in seconds
+
+function countdown() {
+  const timerDisplay = document.getElementById('timer');
+  const minutes = Math.floor(timeLeft / 60);
+  let seconds = timeLeft % 60;
+  seconds = seconds < 10 ? '0' + seconds : seconds;
+  timerDisplay.textContent = `${minutes}:${seconds}`;
+  if (timeLeft === 0) {
+    clearInterval(timerInterval);
+    submitExam(); // Automatically submit exam when time runs out
+  } else {
+    timeLeft--;
+  }
+}
+
+const timerInterval = setInterval(countdown, 1000);
+
+</script>
+</body>
+</html>

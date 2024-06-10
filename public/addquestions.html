@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Questions</title>
+<style>
+  /* CSS styles */
+  body {
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  form {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  label,
+  textarea,
+  input {
+    display: block;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  .optionContainer {
+    display: flex;
+    align-items: center;
+  }
+
+  button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  .suggestions-container {
+    position: relative;
+  }
+
+  .suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-top: none;
+    display: none;
+  }
+
+  .suggestions .suggestion {
+    padding: 10px;
+    cursor: pointer;
+  }
+
+  .suggestions .suggestion:hover {
+    background-color: #f1f1f1;
+  }
+</style>
+</head>
+<body>
+<h1>Add Questions for Specific Skills</h1>
+<form id="questionForm">
+  <label for="subject">Enter Skill:</label>
+  <div class="suggestions-container">
+    <input type="text" id="subject" name="subject" placeholder="Search for a skill...">
+    <div class="suggestions"></div>
+  </div>
+  <label for="question">Enter Question:</label>
+  <textarea id="question" name="question" rows="4"></textarea>
+  <label for="imageUrl">Image URL (optional):</label>
+  <input type="text" id="imageUrl" name="imageUrl">
+  <label for="options">Enter Options:</label>
+  <div id="optionsContainer">
+    <input type="text" class="optionInput" placeholder="Option 1">
+    <input type="text" class="optionInput" placeholder="Option 2">
+    <input type="text" class="optionInput" placeholder="Option 3">
+    <input type="text" class="optionInput" placeholder="Option 4">
+    <select id="correctOption" name="correctOption">
+      <option value="">Select Correct Answer</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+    </select>
+  </div>
+  <button type="submit">Add Question</button>
+</form>
+<p id="Message" class="successMessage"></p>
+
+<script>
+
+
+
+window.addEventListener('load', function() {
+  const skillsInput = document.getElementById('subject');
+  const skillSuggestions = document.querySelector('.suggestions');
+  
+  // Fetch skills data from backend when the page loads
+  fetch('/api/skills') // Update the URL to match your backend endpoint
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch skills data');
+      }
+      return response.json();
+    })
+    .then(data => {
+      const suggestions = data.skills; // Extract skills array from response
+      skillsInput.addEventListener('input', () => {
+        const input = skillsInput.value.toLowerCase();
+        const filteredSuggestions = suggestions.filter(suggestion => suggestion.toLowerCase().startsWith(input));
+        if (filteredSuggestions.length > 0) {
+          const suggestionItems = filteredSuggestions.map(suggestion => `<div class="suggestion">${suggestion}</div>`).join('');
+          skillSuggestions.innerHTML = suggestionItems;
+          skillSuggestions.style.display = 'block';
+        } else {
+          skillSuggestions.innerHTML = '';
+          skillSuggestions.style.display = 'none';
+        }
+      });
+
+      skillSuggestions.addEventListener('click', (event) => {
+        if (event.target.classList.contains('suggestion')) {
+          const selectedSkill = event.target.textContent;
+          skillsInput.value = selectedSkill;
+          skillSuggestions.innerHTML = '';
+          skillSuggestions.style.display = 'none';
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Failed to fetch skills data');
+    });
+
+  const questionForm = document.getElementById('questionForm');
+  questionForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const subjectId = skillsInput.value;
+    const question = document.getElementById('question').value;
+    const imageUrl = document.getElementById('imageUrl').value;
+
+    const options = [];
+    const allOptionInputs = document.querySelectorAll('.optionInput');
+    allOptionInputs.forEach(function(optionInput, index) {
+      const optionText = optionInput.value.trim();
+      const isCorrect = (index + 1) === parseInt(document.getElementById('correctOption').value);
+      if (optionText) {
+        options.push({
+          option_text: optionText,
+          is_correct: isCorrect ? (index + 1) : 0
+        });
+      }
+    });
+
+    if (!subjectId || !question || options.length < 2) {
+      alert('Please fill in all fields and provide at least two options.');
+      return;
+    }
+
+    const formData = {
+      subject_id: subjectId,
+      question,
+      imageUrl,
+      options
+    };
+
+    console.log(formData);
+     fetch('/api/add-question', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify(formData)
+     })
+     .then(response => {
+       if (!response.ok) {
+       throw new Error('Failed to add question');
+       }
+       return response.json();
+     })
+     .then(data => {
+       document.getElementById('Message').textContent = 'Question Added Successfully';
+       questionForm.reset();
+     })
+     .catch(error => {
+       console.error('Error:', error);
+       alert('Failed to add question');
+     });
+  });
+});
+
+
+</script>
+</body>
+</html>

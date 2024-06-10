@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiter Dashboard</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #f1f1f1;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #e0e0e0;
+            padding: 10px;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        nav li {
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: black;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: 100%;
+        }
+
+        .popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            border-radius: 5px;
+        }
+
+        button.hire {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        button.reject {
+            background-color: #FF5733;
+            color: white;
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+        }
+
+        .search-bar input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Additional styles for table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Recruiter Dashboard</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="showRecruiterDashboard">Jobs</a></li>
+            <li><a href="short">Shorlisted For Interview</a></li>
+            <li><a href="hired">Hired</a></li>
+        </ul>
+    </nav>
+
+  <div class="container">
+    <!-- Search bar -->
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search...">
+    </div>
+    
+    <!-- Table for Shortlisted Candidates -->
+    <table id="shortlistedCandidatesTable">
+        <thead>
+            <tr>
+                <th>Job ID</th>
+                <th>Candidate ID</th>
+                <th>Candidate Name</th>
+                <th>Candidate Email</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be dynamically loaded here -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+
+
+function fetchDataAndPopulateTable() {
+    fetch('/api/shortlistedCandidates') // Assuming this is your API endpoint for fetching shortlisted candidates
+        .then(response => response.json())
+        .then(data => {
+            var tbody = document.querySelector("#shortlistedCandidatesTable tbody");
+
+            // Clear existing table rows
+            tbody.innerHTML = '';
+
+            // Populate the table with fetched data
+            data.forEach(function(candidate) {
+                var row = document.createElement("tr");
+
+                // Loop through candidate properties
+                Object.entries(candidate).forEach(function([key, value]) {
+                    var cell = document.createElement("td");
+                    // Check if the current property is "jobId"
+					console.log(key)
+                    if (key === 'job_id') {
+                        var anchor = document.createElement("a");
+                        anchor.textContent = value;
+								anchor.href = '/specificJobIdPage?jobId=' + value; // Pass Job ID as a query parameter
+                        cell.appendChild(anchor);
+                    } else {
+                        cell.textContent = value;
+                    }
+                    row.appendChild(cell);
+                });
+
+                // Add action buttons
+                var actionCell = document.createElement("td");
+                var hireButton = document.createElement("button");
+                hireButton.textContent = "Hire";
+                hireButton.className = "hire";
+                var rejectButton = document.createElement("button");
+                rejectButton.textContent = "Reject";
+                rejectButton.className = "reject";
+                var downloadButton = document.createElement("button");
+                downloadButton.textContent = "Download Resume";
+                downloadButton.className = "download";
+
+                actionCell.appendChild(downloadButton); // Append Download Resume button
+                actionCell.appendChild(hireButton);
+                actionCell.appendChild(rejectButton);
+
+                row.appendChild(actionCell);
+
+                tbody.appendChild(row);
+            });
+
+            // Add event listeners to buttons
+            document.querySelectorAll('.hire').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var jobId = button.closest('tr').querySelector('td:first-child').textContent;
+                    var candidateId = button.closest('tr').querySelector('td:nth-child(2)').textContent;
+                    fetch('/hiredCandidate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ jobId: jobId, candidateId: candidateId })
+                    }).then(response => {
+                        // Handle response
+                    }).catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+
+            document.querySelectorAll('.reject').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var jobId = button.closest('tr').querySelector('td:first-child').textContent;
+                    var candidateId = button.closest('tr').querySelector('td:nth-child(2)').textContent;
+                    fetch('/rejectCandidate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ jobId: jobId, candidateId: candidateId })
+                    }).then(response => {
+                        // Handle response
+                    }).catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+
+            document.querySelectorAll('.download').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var jobId = button.closest('tr').querySelector('td:first-child').textContent;
+                    var candidateId = button.closest('tr').querySelector('td:nth-child(2)').textContent;
+					console.log(jobId);
+					console.log(candidateId);
+                    window.location.href = '/resume/' + jobId + '/' + candidateId; // Route to download resume
+                });
+            });
+
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+}
+
+
+
+
+
+
+
+    // Call the function to fetch data and populate the table
+    fetchDataAndPopulateTable();
+
+    // Search functionality
+    document.getElementById("searchInput").addEventListener("keyup", function() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("shortlistedCandidatesTable");
+        tr = table.getElementsByTagName("tr");
+        for (i = 0; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName("td")[1]; // Index 1 is for Candidate Name column
+            if (td) {
+                txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

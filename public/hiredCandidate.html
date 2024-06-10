@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiter Dashboard</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #f1f1f1;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #e0e0e0;
+            padding: 10px;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        nav li {
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: black;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: 100%;
+        }
+
+        .popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #3e8e41;
+        }
+
+        .job-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .job-item {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Additional styles for table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+    </style>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+
+</head>
+<body>
+    <header>
+        <h1>Recruiter Dashboard</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="showRecruiterDashboard">Jobs</a></li>
+            <li><a href="short">Shorlisted For Interview</a></li>
+            <li><a href="selectedForJob">Hired</a></li>
+        </ul>
+    </nav>
+
+    <!-- Table for Shortlisted Candidates -->
+    <div class="container">
+        <table id="shortlistedCandidatesTable">
+            <thead>
+                <tr>
+                    <th>Job ID</th>
+                    <th>Candidate Name</th>
+                    <th>Candidate Email</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
+
+    <script>
+        // Function to fetch data from API and populate the table
+        function fetchDataAndPopulateTable() {
+            fetch('/api/hiredCandidates') // Assuming this is your API endpoint for fetching shortlisted candidates
+                .then(response => response.json())
+                .then(data => {
+                    var tbody = document.querySelector("#shortlistedCandidatesTable tbody");
+
+                    // Clear existing table rows
+                    tbody.innerHTML = '';
+
+                    // Populate the table with fetched data
+                    data.forEach(function(candidate) {
+                        var row = document.createElement("tr");
+
+                        Object.entries(candidate).forEach(function([key, value]) {
+						
+						console.log(key);
+						console.log(value);
+                            var cell = document.createElement("td");
+                            if (key == 'job_id') {
+                                var anchor = document.createElement("a");
+                                anchor.textContent = value;
+								anchor.href = '/specificJobIdPage?jobId=' + value; // Pass Job ID as a query parameter
+
+                                cell.appendChild(anchor);
+                            } else {
+                                cell.textContent = value;
+                            }
+                            row.appendChild(cell);
+                        });
+                        tbody.appendChild(row);
+                    });
+
+                    // Initialize DataTables
+                    $('#shortlistedCandidatesTable').DataTable();
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+        // Call the function to fetch data and populate the table
+        fetchDataAndPopulateTable();
+    </script>
+</body>
+</html>

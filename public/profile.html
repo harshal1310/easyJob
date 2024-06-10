@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    
+	
+	<style>
+	
+	
+	body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.header {
+    background-color: #f0f0f0;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo a {
+    text-decoration: none;
+    color: #333;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.nav a {
+    text-decoration: none;
+    color: #333;
+    margin-left: 20px;
+}
+
+.main {
+    padding: 20px;
+}
+
+.profile-container {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.profile-picture img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin-right: 20px;
+}
+
+.user-info {
+    flex-grow: 1;
+}
+
+.user-info h1 {
+    margin: 0;
+    margin-bottom: 10px;
+    font-size: 24px;
+    color: #333;
+}
+
+.user-info p {
+    margin: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: #666;
+}
+
+.contact-info {
+    list-style-type: none;
+    padding: 0;
+}
+
+.contact-info li {
+    margin-bottom: 5px;
+}
+
+.contact-info a {
+    text-decoration: none;
+    color: #333;
+}
+
+.contact-info a:hover {
+    color: #007bff;
+}
+
+.button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sections h2 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-size: 24px;
+    color: #333;
+}
+ .skills {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .skills li {
+            display: inline-block;
+            background-color: #f0f0f0;
+            color: #666;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 3px;
+        }
+
+
+	
+	</style>
+	
+	
+</head>
+<body>
+  <header class="header">
+    <div class="logo">
+      <a href="#">Your Company Logo</a>
+    </div>
+    <nav class="nav">
+      <a href="#">Home</a>
+      <a href="#">Settings</a>
+      <a href="#">Logout</a>
+    </nav>
+  </header>
+  <main class="main">
+    <div class="profile-container">
+      <div class="profile-picture">
+        <img src="profile-picture.jpg" alt="Profile Picture">
+      </div>
+      <div class="user-info">
+        <h1>John Doe</h1>
+        <p>Creative Designer</p>
+        <ul class="contact-info">
+          <li><a href="#">Email: john.doe@example.com</a></li>
+          <li><a href="#">Website: johndoeportfolio.com</a></li>
+        </ul>
+        <button>Edit Profile</button>
+      </div>
+    </div>
+    <div class="sections">
+      <h2>About Me</h2>
+      <p>I am a passionate and creative designer with 5+ years of experience in crafting user interfaces and user experiences. I am skilled in using design software such as Figma, Adobe XD, and Photoshop. I am always eager to learn new things and take on challenging projects.</p>
+      <h2>Skills</h2>
+      <ul class="skills">
+        <li>UI/UX Design</li>
+        <li>Graphic Design</li>
+        <li>Web Design</li>
+        <li>Figma</li>
+        <li>Adobe XD</li>
+        <li>Photoshop</li>
+      </ul>
+      <h2>Additional Sections (Optional)</h2>
+    </div>
+    <div class="resume-section">
+      <h2>Resume Information</h2>
+      <p>Your resume: <a href="#">MyResume_Co3f.pdf</a> <button>Change</button></p>
+      <form action="#" method="post">
+        <label for="headline">Headline:</label>
+        <input type="text" id="headline" name="headline"><br><br>
+        <label for="gender">Gender:</label>
+        <input type="text" id="gender" name="gender"><br><br>
+        <label for="looking-for">Looking for:</label>
+        <select id="looking-for" name="looking-for">
+          <option value="full-time">Full time</option>
+          <option value="internship">Internship</option>
+        </select><br><br>
+        <label for="work-experience">Work experience:</label>
+        <input type="text" id="work-experience" name="work-experience"><br><br>
+        <label for="internship-experience">Internship experience:</label>
+        <input type="text" id="internship-experience" name="internship-experience"><br><br>
+        <label for="skills">Skills:</label>
+        <input type="text" id="skills" name="skills"><br><br>
+        <label for="current-company">Your current company:</label>
+        <input type="text" id="current-company" name="current-company"><br><br>
+        <label for="past-companies">Past companies:</label>
+        <input type="text" id="past-companies" name="past-companies"><br><br>
+        <label for="current-city">Your current city:</label>
+        <input type="text" id="current-city" name="current-city"><br><br>
+        <label for="office-preference">Office Preference:</label>
+        <input type="text" id="office-preference" name="office-preference"><br><br>
+        <label for="specialization">Your specialization:</label>
+        <input type="text" id="specialization" name="specialization"><br><br>
+        <input type="checkbox" id="declaration" name="declaration" required>
+        <label for="declaration">I hereby declare that the information furnished in my resume and talent card are true, complete and correct to the best of my knowledge and belief.</label><br><br>
+        <button type="submit">Continue</button>
+        <button type="button">Cancel</button>
+      </form>
+    </div>
+  </main>
+  <footer class="footer">
+    <p>&#169; Your Company Name 2024</p>
+  </footer>
+</body>
+</html>
