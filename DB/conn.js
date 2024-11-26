@@ -78,15 +78,7 @@ const tableQueries = [
     )`
 ];
 
-async function createTables() {
-    try {
-        // Connect to the database only once
-        if (!connection._connected) {
-            await connection.connect();
-            console.log('Connected to the PostgreSQL database!');
-        }
-
-        // Execute each query in sequence
+const executeQueries = async () => {
         for (const query of tableQueries) {
             try {
                 const res = await connection.query(query);
@@ -96,13 +88,10 @@ async function createTables() {
             }
         }
 
-        console.log('All queries executed successfully!');
-    } catch (err) {
-        console.error('Error connecting to the database:', err.stack);
-    }
-}
+        
+    };
 
-
-createTables();
+    executeQueries();
+});
 
 module.exports = connection;
