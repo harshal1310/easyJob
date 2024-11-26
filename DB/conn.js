@@ -3,10 +3,11 @@ require('dotenv').config();
 
 const dbUrl = process.env.DB_URL;
 
+// Create a connection to the PostgreSQL database using the URL
 const connection = new Client({
     connectionString: dbUrl,
     ssl: {
-        rejectUnauthorized: false 
+        rejectUnauthorized: false // For self-signed certificates; set to `true` if using a trusted certificate
     }
 });
 
@@ -78,7 +79,15 @@ const tableQueries = [
     )`
 ];
 
-const executeQueries = async () => {
+async function createTables() {
+    try {
+        // Connect to the database only if not already connected
+        if (!connection._connection) {
+            await connection.connect();
+            console.log('Connected to the PostgreSQL database!');
+        }
+
+        // Execute each query in sequence
         for (const query of tableQueries) {
             try {
                 const res = await connection.query(query);
@@ -88,10 +97,17 @@ const executeQueries = async () => {
             }
         }
 
-        
-    };
+        console.log('All queries executed successfully!');
+    } catch (err) {
+        console.error('Error connecting to the database:', err.stack);
+    } finally {
+        // Ensure the connection is always closed
+        await connection.end();
+        console.log('Connection closed.');
+    }
+}
 
-    executeQueries();
-});
+// Call the function to create tables
+createTables();
 
 module.exports = connection;
