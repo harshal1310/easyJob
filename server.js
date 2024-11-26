@@ -59,14 +59,11 @@ const SECRET_KEY = '1234';
 
 
 
-// Connect to the database
-connection.connect((err) => {
-    if (err) {
-        console.error('Error connecting to database:', err.stack);
-        return;
-    }
-    console.log('Connected to database as id', connection.threadId);
-});
+app.get('/',(req,res) => {
+
+res.sendFile(path.join(__dirname,'public','signup.html'))
+
+})
 
 app.get('/login',(req, res) => {
 	console.log(req.cookies.token)
