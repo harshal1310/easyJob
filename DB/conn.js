@@ -1,17 +1,23 @@
-const { Pool } = require('pg');
+const { Client } = require('pg');
 require('dotenv').config(); 
-
 const dbUrl = process.env.DB_URL;
 
 // Create a pool of PostgreSQL connections using the URL
-const pool = new Pool({
+const connection = new Client({
     connectionString: dbUrl,
     ssl: {
-        rejectUnauthorized: false 
+        rejectUnauthorized: false // For self-signed certificates; set to `true` if using a trusted certificate
     }
 });
 
 // List of table creation queries in the correct order
+connection.connect(err => {
+    if (err) {
+        console.error('Error connecting to the database:', err);
+        return;
+    }
+    console.log('Connected to the PostgreSQL database!');
+
 const tableQueries = [
     `CREATE TABLE IF NOT EXISTS subjects (
         subject_id SERIAL PRIMARY KEY,
@@ -79,31 +85,20 @@ const tableQueries = [
     )`
 ];
 
-async function createTables() {
-    const client = await pool.connect(); // Get a client from the pool
-    try {
-        console.log('Connected to the PostgreSQL database!');
-
-        // Execute each query in sequence
+const executeQueries = async () => {
         for (const query of tableQueries) {
             try {
-                const res = await client.query(query);  
+                const res = await connection.query(query);
                 console.log('Table created or already exists:', res.command);
             } catch (err) {
                 console.error('Error creating table:', err.stack);
             }
         }
 
-        console.log('All queries executed successfully!');
-    } catch (err) {
-        console.error('Error connecting to the database:', err.stack);
-    } finally {
-        // Release the client back to the pool
-        client.release();
-    }
-}
+        
+    };
 
-// Call the function to create tables
-createTables();
+    executeQueries();
+});
 
-module.exports = pool;
+module.exports = connection;
