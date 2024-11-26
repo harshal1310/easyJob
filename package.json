@@ -21,6 +21,7 @@
     "mysql": "^2.18.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.13",
-    "otp-generator": "^4.0.1"
+    "otp-generator": "^4.0.1",
+    "pg": "^8.13.1"
   }
 }
