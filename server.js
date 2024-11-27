@@ -60,7 +60,22 @@ const SECRET_KEY = '1234';
 
 
 app.get('/',(req,res) => {
+console.log("default route")
+const sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
 
+    connection.query(sql, (err, result) => {
+        if (err) {
+            console.error('Error executing query', err);
+            return res.status(500).send('Error fetching tables');
+        }
+
+        // If the query is successful, send the table names as a response
+        const tableNames = result.rows.map(row => row.table_name);
+
+        // Log the table names (you can send them to the client too)
+        console.log('Tables in the database:', tableNames);
+
+})
 res.sendFile(path.join(__dirname,'public','signup.html'))
 
 })
