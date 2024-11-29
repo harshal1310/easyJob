@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const connection = require('./DB/conn.js');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
@@ -59,26 +60,24 @@ const SECRET_KEY = '1234';
 
 
 
-app.get('/',(req,res) => {
-console.log("default route")
-const sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+app.get('/api/skills', async (req, res) => {
+  try {
+    console.log("Fetching skills...");
+    
+    // Query the skills table (PostgreSQL query returns an object with a `rows` property)
+    const result = await connection.query('SELECT skill_name FROM skills');
+    console.log(result.rows);  // Log the result for debugging
+    
+    // Return skills as a JSON response (ensure correct column name 'skill_name')
+    res.json({ skills: result.rows.map(row => row.skill_name) });
+  } catch (error) {
+    console.error('Error fetching skills from database:', error);
+    res.status(500).json({ error: 'Error fetching skills' });
+  }
+});
 
-    connection.query(sql, (err, result) => {
-        if (err) {
-            console.error('Error executing query', err);
-            return res.status(500).send('Error fetching tables');
-        }
 
-        // If the query is successful, send the table names as a response
-        const tableNames = result.rows.map(row => row.table_name);
 
-        // Log the table names (you can send them to the client too)
-        console.log('Tables in the database:', tableNames);
-
-})
-res.sendFile(path.join(__dirname,'public','signup.html'))
-
-})
 
 app.get('/login',(req, res) => {
 	console.log(req.cookies.token)
@@ -94,51 +93,93 @@ app.get('/login',(req, res) => {
 
 // Login Route
 
-app.post('/login', (req, res) => {
+app.get('/',(req,res) => {
+const sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+
+    connection.query(sql, (err, result) => {
+        if (err) {
+            console.error('Error executing query', err);
+            return res.status(500).send('Error fetching tables');
+        }
+
+        // If the query is successful, send the table names as a response
+        const tableNames = result.rows.map(row => row.table_name);
+        
+        // Log the table names (you can send them to the client too)
+        console.log('Tables in the database:', tableNames);
+
+})
+res.sendFile(path.join(__dirname,'public','signup.html'))
+
+})
+
+
+// POST /login
+app.post('/login', async (req, res) => {
     const { email, password } = req.body;
-console.log(req.body)
+
     // Validate email and password presence
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    let sql = 'SELECT * FROM candidates WHERE email = ? AND password = ?';
-    connection.query(sql, [email, password], (err, candidateResult) => {
-        if (err) {
-            console.error('Error executing login query for candidate:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
-        if (candidateResult.length > 0) {
-            // Candidate login successful
-			
-			 const candidateId = candidateResult[0].id; // Get candidate ID from the query result
-
-            const token = jwt.sign({ id: candidateId, email: email, role: 'Candidate' }, SECRET_KEY, { expiresIn: '1d' });
-			            res.cookie('token', token, { maxAge: 24 * 60 * 60 * 1000 });
-            return res.status(200).json({ message: 'Candidate login successful', role: 'Candidate' });
-        }
-
-        sql = 'SELECT * FROM recruiters WHERE email = ? AND password = ?';
-        connection.query(sql, [email, password], (err, recruiterResult) => {
+    try {
+        // First check if the email exists in the candidates table
+        let sql = 'SELECT * FROM candidates WHERE email = $1';
+        connection.query(sql, [email], async (err, result) => {
             if (err) {
-                console.error('Error executing login query for recruiter:', err);
+                console.error('Error executing query for candidate:', err);
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
-            if (recruiterResult.length > 0) {
-				 const recruiterId = recruiterResult[0].id; // Get candidate ID from the query result
+            if (result.rows.length > 0) {
+                // If email exists in candidates table
+                const candidate = result.rows[0];
 
-           const  token = jwt.sign({ id: recruiterId, email: email, role: 'Recruiter' }, SECRET_KEY, { expiresIn: '1d' });
-				
-                res.cookie('token', token, { maxAge: 24 * 60 * 60 * 1000 });
-                return res.status(200).json({ message: 'Recruiter login successful', role: 'Recruiter' });
-            } else {
-                // Invalid email or password
-                return res.status(401).json({ error: 'Invalid email or password' });
+                // Compare the password
+                const isMatch = await bcrypt.compare(password, candidate.password);
+                if (isMatch) {
+                    const token = jwt.sign({ id: candidate.candidate_id, email: candidate.email, role: 'Candidate' }, SECRET_KEY, { expiresIn: '1d' });
+                    res.cookie('token', token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+                    return res.status(200).json({ message: 'Candidate login successful', role: 'Candidate' });
+                } else {
+                    // Invalid password for candidate
+                    return res.status(401).json({ error: 'Invalid email or password' });
+                }
             }
+
+            // If email is not found in candidates table, check recruiters table
+            sql = 'SELECT * FROM recruiters WHERE email = $1';
+            connection.query(sql, [email], async (err, result) => {
+                if (err) {
+                    console.error('Error executing query for recruiter:', err);
+                    return res.status(500).json({ error: 'Internal server error' });
+                }
+
+                if (result.rows.length > 0) {
+                    // If email exists in recruiters table
+                    const recruiter = result.rows[0];
+
+                    // Compare the password
+                    const isMatch = await bcrypt.compare(password, recruiter.password);
+                    if (isMatch) {
+                        const token = jwt.sign({ id: recruiter.recruiter_id, email: recruiter.email, role: 'Recruiter' }, SECRET_KEY, { expiresIn: '1d' });
+                        res.cookie('token', token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+                        return res.status(200).json({ message: 'Recruiter login successful', role: 'Recruiter' });
+                    } else {
+                        // Invalid password for recruiter
+                        return res.status(401).json({ error: 'Invalid email or password' });
+                    }
+                } else {
+                    // Email not found in both candidates and recruiters
+                    return res.status(401).json({ error: 'Invalid email or password' });
+                }
+            });
         });
-    });
+    } catch (error) {
+        console.error('Error during login process:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 app.get('/signup', (req, res) => {
@@ -148,7 +189,7 @@ app.get('/signup', (req, res) => {
 
 
 const checkEmailExists = (email, table, callback) => {
-    const sql = `SELECT * FROM ${table} WHERE email = ?`;
+    const sql = `SELECT * FROM ${table} WHERE email = $1`;
     connection.query(sql, [email], (err, result) => {
         if (err) {
             return callback(err, null);
@@ -176,7 +217,7 @@ app.post('/signup/candidate', (req, res) => {
 
         try {
             const hashedPassword = await bcrypt.hash(password, 10);
-            const sql = 'INSERT INTO candidates (full_name, email, password) VALUES (?, ?, ?)';
+            const sql = 'INSERT INTO candidates (full_name, email, password) VALUES ($1, $2, $3)';
             connection.query(sql, [fullName, email, hashedPassword], (err, result) => {
                 if (err) {
                     console.error('Error inserting candidate:', err);
@@ -209,16 +250,16 @@ app.post('/signup/recruiter', (req, res) => {
 
         try {
             const hashedPassword = await bcrypt.hash(password, 10);
-            const sql = 'INSERT INTO recruiters (full_name, email, password, company_name, website, talent_acquisition, company_size, industry) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+            const sql = 'INSERT INTO recruiters (full_name, email, password, company_name, website, talent_acquisition, company_size, industry) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)';
             connection.query(sql, [fullName, email, hashedPassword, companyName, website, talentAcquisition, companySize, industry], (err, result) => {
                 if (err) {
                     console.error('Error inserting recruiter:', err);
                     return res.status(500).json({ error: 'Internal server error' });
                 }
                 res.cookie('email', email, { httpOnly: true });
-				const otp = otpGenerator.generate(6, { digits: true, alphabets: false, upperCase: false, specialChars: false });
-				 req.session.otp = otp;
-				 console.log(req.session.otp)
+				//const otp = otpGenerator.generate(6, { digits: true, alphabets: false, upperCase: false, specialChars: false });
+				 //req.session.otp = otp;
+				 //console.log(req.session.otp)
 				//	sendMail(email, `Your OTP for email verification is: ${otp}`);
                 res.status(200).json({ message: 'Recruiter registered successfully' });
             });
@@ -230,7 +271,7 @@ app.post('/signup/recruiter', (req, res) => {
 });
 
 
-
+/*
 app.post('/verify-otp', (req, res) => {
     const { otp } = req.body;
     const email = req.session.email;
@@ -280,7 +321,7 @@ app.get('/verify', (req, res) => {
     }
     res.render('otpPage.ejs',{email});
 });
-
+*/
 
 
 
@@ -365,7 +406,7 @@ cron.schedule('0 */2 * * *', () => {
             const { candidate_id, job_id, experience,email } = application;
 
             // Query jobpostings table to find matching job postings
-            const jobQuery = `SELECT * FROM jobpostings WHERE job_id = ? AND experience_min <= ?`;
+            const jobQuery = `SELECT * FROM jobpostings WHERE job_id = $1 AND experience_min <= $2`;
             connection.query(jobQuery, [job_id, experience], (jobError, jobResults) => {
                 if (jobError) {
                     console.error('Error querying job postings:', jobError);
@@ -436,7 +477,7 @@ app.get('/test/:jobId/startExam', authenticateToken,(req, res) => {
 console.log(jobId);
 console.log(candidateId);
     connection.query(
-        'SELECT * FROM application WHERE candidate_id = ? AND job_id = ?',
+        'SELECT * FROM application WHERE candidate_id = $1 AND job_id = $2',
         [candidateId, jobId],
         (error, results) => {
             if (error) {
@@ -471,7 +512,7 @@ console.log("Thirty Minutes Later in seconds:", thirtyMinutesLaterInSeconds);
                 // If exam has not started yet, start it and set start time
                 const currentTime = new Date();
                 connection.query(
-                    'UPDATE application SET isexamstart = true, startexamtime = ? WHERE candidate_id = ? AND job_id = ?',
+                    'UPDATE application SET isexamstart = true, startexamtime = $1 WHERE candidate_id = $2 AND job_id = $3',
                     [currentTime, candidateId, jobId],
                     (error, results) => {
                         if (error) {
@@ -548,7 +589,7 @@ function ensureQuestions(req, res, next) {
 function getCandidateResponse(candidateId, questionId,jobId) {
 	
     return new Promise((resolve, reject) => {
-        const query = 'SELECT response FROM candidate_responses WHERE candidate_id = ? AND question_id = ? AND job_id = ?';
+        const query = 'SELECT response FROM candidate_responses WHERE candidate_id = $1 AND question_id = $2 AND job_id = $3';
         connection.query(query, [candidateId, questionId,jobId], (error, results) => {
             if (error) {
                 reject(error);
@@ -633,7 +674,7 @@ app.post('/api/candidate/responses/:jobId',authenticateToken, async (req, res) =
 		const jobId = req.params.jobId;
 
             // Query the database to get the correct answer for the given question
-            const query = 'SELECT is_correct FROM options WHERE question_id = ? AND is_correct > 0';
+            const query = 'SELECT is_correct FROM options WHERE question_id = $1 AND is_correct > 0';
             connection.query(query, [questionId], (err, rows) => {
                 if (err) throw err;
 
@@ -642,13 +683,13 @@ app.post('/api/candidate/responses/:jobId',authenticateToken, async (req, res) =
                     const marks = (option == ans) ? 4 : -1; // Calculate marks based on the correctness of the response
 
                     // Check if a response already exists for the same candidate, job, and question
-                    const checkQuery = 'SELECT id FROM candidate_responses WHERE candidate_id = ? AND job_id = ? AND question_id = ?';
+                    const checkQuery = 'SELECT id FROM candidate_responses WHERE candidate_id = $1 AND job_id = $2 AND question_id = $3';
                     connection.query(checkQuery, [candidateId, jobId, questionId], (checkErr, checkResult) => {
                         if (checkErr) throw checkErr;
 
                         if (checkResult.length > 0) {
                             // If a response exists, update the existing record
-                            const updateQuery = 'UPDATE candidate_responses SET response = ?, marks = ? WHERE id = ?';
+                            const updateQuery = 'UPDATE candidate_responses SET response = $1, marks = $2 WHERE id = $3';
                             const responseId = checkResult[0].id;
                             connection.query(updateQuery, [option, marks, responseId], (updateErr, updateResult) => {
                                 if (updateErr) throw updateErr;
@@ -657,7 +698,7 @@ app.post('/api/candidate/responses/:jobId',authenticateToken, async (req, res) =
                             });
                         } else {
                             // If no response exists, insert a new record
-                            const insertQuery = 'INSERT INTO candidate_responses (job_id, candidate_id, question_id, ans, response, marks) VALUES (?, ?, ?, ?, ?, ?)';
+                            const insertQuery = 'INSERT INTO candidate_responses (job_id, candidate_id, question_id, ans, response, marks) VALUES ($1, $2, $3, $4, $5, $6)';
                             const response = [jobId, candidateId, questionId, ans, option, marks];
                             connection.query(insertQuery, response, (insertErr, result) => {
                                 if (insertErr) throw insertErr;
@@ -691,6 +732,43 @@ app.post('/api/candidate/responses/:jobId',authenticateToken, async (req, res) =
 
 
 
+/*
+app.post('/api/inviteForInterview', (req, res) => {
+    const { candidateId, jobId } = req.body;
+    console.log(req.body);
+    console.log("in invite");
+
+    // Convert candidateId and jobId to numbers
+    const parsedCandidateId = parseInt(candidateId);
+    const parsedJobId = parseInt(jobId);
+
+    console.log(parsedCandidateId);
+    console.log(parsedJobId);
+
+    const checkQuery = 'SELECT * FROM shortlisted_candidates WHERE candidate_id = $1 AND job_id = $2 AND status = 0';
+    connection.query(checkQuery, [parsedCandidateId, parsedJobId], (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error('Error checking shortlisted candidates:', checkErr);
+            return res.status(500).json({ error: 'Failed to check shortlisted candidates' });
+        }
+        if (checkResult.length > 0) {
+            return res.status(400).json({ message: 'Candidate already shortlisted for this job.' });
+        } else {
+            const insertQuery = 'INSERT INTO shortlisted_candidates (candidate_id, job_id, date) VALUES ($1, $2, CURDATE())';
+            connection.query(insertQuery, [parsedCandidateId, parsedJobId], (insertErr, insertResult) => {
+                if (insertErr) {
+                    console.error('Error shortlisting candidate:', insertErr);
+                    return res.status(500).json({ error: 'Failed to shortlist candidate' });
+                }
+                console.log('Candidate shortlisted for interview successfully');
+                return res.status(200).json({ message: 'Candidate shortlisted for interview successfully.' });
+            });
+        }
+    });
+});
+*/
+
+
 
 app.post('/api/inviteForInterview', (req, res) => {
     const { candidateId, jobId } = req.body;
@@ -704,7 +782,7 @@ app.post('/api/inviteForInterview', (req, res) => {
     console.log(parsedCandidateId);
     console.log(parsedJobId);
 
-    const checkQuery = 'SELECT * FROM shortlisted_candidates WHERE candidate_id = ? AND job_id = ? AND status = 0';
+    const checkQuery = 'SELECT * FROM shortlisted_candidates WHERE candidate_id = $1 AND job_id = $2 AND status = 0';
     connection.query(checkQuery, [parsedCandidateId, parsedJobId], (checkErr, checkResult) => {
         if (checkErr) {
             console.error('Error checking shortlisted candidates:', checkErr);
@@ -713,7 +791,8 @@ app.post('/api/inviteForInterview', (req, res) => {
         if (checkResult.length > 0) {
             return res.status(400).json({ message: 'Candidate already shortlisted for this job.' });
         } else {
-            const insertQuery = 'INSERT INTO shortlisted_candidates (candidate_id, job_id, date) VALUES (?, ?, CURDATE())';
+            // Insert query with date column
+            const insertQuery = 'INSERT INTO shortlisted_candidates (candidate_id, job_id, status) VALUES ($1, $2, 0)';
             connection.query(insertQuery, [parsedCandidateId, parsedJobId], (insertErr, insertResult) => {
                 if (insertErr) {
                     console.error('Error shortlisting candidate:', insertErr);
@@ -732,13 +811,13 @@ app.delete('/delete-job/:jobId', (req, res) => {
     const jobId = req.params.jobId;
 
     // First, delete from jobskills table
-    connection.query('DELETE FROM jobskills WHERE job_id = ?', [jobId], (err1, result1) => {
+    connection.query('DELETE FROM jobskills WHERE job_id = $1', [jobId], (err1, result1) => {
         if (err1) {
             console.error('Error deleting job skills:', err1);
             res.status(500).json({ message: 'Internal server error' });
         } else {
             // Then, delete from jobpostings table
-            connection.query('DELETE FROM jobpostings WHERE job_id = ?', [jobId], (err2, result2) => {
+            connection.query('DELETE FROM jobpostings WHERE job_id = $1', [jobId], (err2, result2) => {
                 if (err2) {
                     console.error('Error deleting job posting:', err2);
                     res.status(500).json({ message: 'Internal server error' });
@@ -832,39 +911,102 @@ app.get('/selectedForJob',(req,res)=>{
 
 
 
-
 app.get('/resume/:jobid/:candidateid', (req, res) => {
-//	console.log(req.params);
-  const jobId = req.params.jobid;//req.params.jobId;
-  const candidateId = req.params.candidateid;//req.params.candidateId;
+    const jobId = req.params.jobid;  // Job ID from URL
+    const candidateId = req.params.candidateid;  // Candidate ID from URL
 
-  // Query the database to retrieve the filename
-  const query = 'SELECT resume FROM application WHERE job_id = ? AND candidate_id = ?';
-  connection.query(query, [jobId, candidateId], (error, results) => {
-    if (error) {
-      console.error('Error retrieving resume filename:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+    // Query the database to retrieve the resume filename
+    const query = 'SELECT resume FROM application WHERE job_id = $1 AND candidate_id = $2';
+    connection.query(query, [jobId, candidateId], (error, results) => {
+        if (error) {
+            console.error('Error retrieving resume filename:', error);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
 
-    if (results.length === 0 || !results) {
-      return res.status(404).json({ error: 'Resume not found' });
-    }
+        // If no results are found or resume filename is missing
+        if (results.rows.length === 0 || !results.rows[0].resume) {
+            return res.status(404).json({ error: 'Resume not found' });
+        }
 
-    const filename = results[0].resume;
-    const filePath = path.join(__dirname, 'uploads', filename);
-	
-	
-	        res.download(filePath, filename, (err) => {
+        // Retrieve the filename of the resume
+        const filename = results.rows[0].resume;
+        const filePath = path.join(__dirname, 'uploads', filename);  // Construct the full file path
+
+        // Check if the file exists
+        fs.access(filePath, fs.constants.F_OK, (err) => {
             if (err) {
-                console.error('Error downloading file:', err);
-                res.status(500).send('Internal Server Error');
+                console.error('File does not exist:', filePath);
+                return res.status(404).json({ error: 'Resume file not found' });
             }
+
+            // If file exists, send it to the client for download
+            res.download(filePath, filename, (err) => {
+                if (err) {
+                    console.error('Error downloading file:', err);
+                    return res.status(500).send('Internal Server Error');
+                }
+            });
         });
-
-
-    // Send the resume file
-  });
+    });
 });
+
+
+
+app.get('/api/getShortlistedCandidates/:jobId', (req, res) => {
+    const jobId = req.params.jobId;
+    console.log('Job ID:', jobId);
+
+    // First query: Fetch applications for the specific job
+    const applicationsQuery = 'SELECT * FROM application WHERE job_id = $1';
+
+    connection.query(applicationsQuery, [jobId], (err, applicationsResult) => {
+        if (err) {
+            console.error('Error fetching applications:', err);
+            return res.status(500).json({ error: 'Failed to fetch applications' });
+        }
+
+        console.log('Applications:', applicationsResult.rows); // Print the applications
+
+        // Second query: Get all candidates (no filtering by jobId)
+        const candidatesQuery = 'SELECT * FROM candidates';
+
+        connection.query(candidatesQuery, (err, candidatesResult) => {
+            if (err) {
+                console.error('Error fetching candidates:', err);
+                return res.status(500).json({ error: 'Failed to fetch candidates' });
+            }
+
+            console.log('Candidates:', candidatesResult.rows); // Print all candidates
+
+            // Combined query to fetch applications with candidate details for the specific job
+            const query = `
+                SELECT
+                    a.application_id,
+                    a.candidate_id,
+                    a.job_id,
+                    a.submission_time,
+                    c.full_name,
+                    c.email
+                FROM application a
+                JOIN candidates c ON a.candidate_id = c.candidate_id
+                WHERE a.job_id = $1
+                ORDER BY a.submission_time DESC;
+            `;
+
+            connection.query(query, [jobId], (err, results) => {
+                if (err) {
+                    console.error('Error fetching combined results:', err);
+                    return res.status(500).json({ error: 'Failed to fetch shortlisted candidates' });
+                }
+
+                console.log('Combined Results:', results.rows); // Print combined data
+                res.json(results.rows); // Send the combined results as JSON response
+            });
+        });
+    });
+});
+
+
 
 app.delete('/delete-job/:jobId', (req, res) => {
     const jobId = parseInt(req.params.jobId);
@@ -894,8 +1036,8 @@ app.post('/api/updateJobInfo', (req, res) => {
         // Update job details
         const updateJobQuery = `
             UPDATE jobpostings 
-            SET job_title = ?, location = ?, job_description = ? 
-            WHERE job_id = ?;
+            SET job_title = $1, location = $2, job_description = $3 
+            WHERE job_id = $4;
         `;
         connection.query(updateJobQuery, [job_title, location, job_description, jobId], (err, results) => {
             if (err) {
@@ -908,7 +1050,7 @@ app.post('/api/updateJobInfo', (req, res) => {
             const skillArray = skills.split(',');
 
             // Retrieve skill IDs for all skills
-            const selectSkillIdsQuery = 'SELECT skill_id, skill_name FROM skills WHERE skill_name IN (?)';
+            const selectSkillIdsQuery = 'SELECT skill_id, skill_name FROM skills WHERE skill_name IN ($1)';
             connection.query(selectSkillIdsQuery, [skillArray], (err, skillResults) => {
                 if (err) {
                     return connection.rollback(() => {
@@ -918,7 +1060,7 @@ app.post('/api/updateJobInfo', (req, res) => {
 
                 // Update jobskills table with job ID and skill IDs
                 const jobSkillsValues = skillResults.map(skill => [jobId, skill.skill_id]);
-                const deleteOldSkillsQuery = 'DELETE FROM jobskills WHERE job_id = ?';
+                const deleteOldSkillsQuery = 'DELETE FROM jobskills WHERE job_id = $1';
                 connection.query(deleteOldSkillsQuery, [jobId], (err, results) => {
                     if (err) {
                         return connection.rollback(() => {
@@ -926,7 +1068,7 @@ app.post('/api/updateJobInfo', (req, res) => {
                         });
                     }
 
-                    const insertJobSkillsQuery = 'INSERT INTO jobskills (job_id, skill_id) VALUES ?';
+                    const insertJobSkillsQuery = 'INSERT INTO jobskills (job_id, skill_id) VALUES $1';
                     connection.query(insertJobSkillsQuery, [jobSkillsValues], (err, results) => {
                         if (err) {
                             return connection.rollback(() => {
@@ -969,3 +1111,4 @@ app.use('/',authenticateToken,recruiterRoute);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
