@@ -46,6 +46,13 @@
         .login-container button:hover {
             background-color: #0056b3;
         }
+
+        /* Style for error message */
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -56,51 +63,62 @@
             <input type="password" id="loginPassword" placeholder="Password" required>
             <button type="submit">Login</button>
         </form>
+        <div id="error-message" class="error-message"></div> <!-- Error message div -->
     </div>
 
     <script>
     document.getElementById("loginForm").addEventListener("submit", async function(event) {
-	console.log('clicked')
-    event.preventDefault();
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
+        event.preventDefault();
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
 
-    // Prepare data object
-    const formData = {
-        email: email,
-        password: password
-    };
+        // Prepare data object
+        const formData = {
+            email: email,
+            password: password
+        };
 
-    try {
-        // Send POST request to backend
-        const response = await fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
+        // Clear any previous error message
+        const errorMessage = document.getElementById("error-message");
+        errorMessage.textContent = ''; // Clear any previous error message
 
-        if (response.ok) {
-            // Parse response body as JSON
-            const data = await response.json();
-			console.log(data)
-            // Determine if the user is a candidate or a recruiter based on data received
-            if (data.role === 'Candidate') {
-                window.location.href = '/jobs'; // Redirect candidate to jobs.html
-            } else if (data.role === 'Recruiter') {
-                window.location.href = '/recruiter'; // Redirect recruiter to recruiterprofile.html
+        try {
+            // Send POST request to backend
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                // Parse response body as JSON
+                const data = await response.json();
+                console.log(data);
+
+                // Determine if the user is a candidate or a recruiter based on data received
+                if (data.role === 'Candidate') {
+                    window.location.href = '/jobs'; // Redirect candidate to jobs page
+                } else if (data.role === 'Recruiter') {
+                    window.location.href = '/recruiter'; // Redirect recruiter to recruiter profile page
+                } else {
+                    throw new Error('Unknown user role: ' + data.role);
+                }
             } else {
-                throw new Error('Unknown user role:', data.role);
+                // Handle login failure - fetch error message
+                const data = await response.json();
+                throw new Error(data.error || 'Login failed');
             }
-        } else {
-            throw new Error('Login failed:', response.statusText);
+        } catch (error) {
+            console.error('Error:', error);
+            
+            // Display the error message to the user
+            const errorMessage = document.getElementById("error-message");
+            errorMessage.textContent = error.message; // Show the error message
         }
-    } catch (error) {
-        console.error('Error:', error);
-    }
-});
-
+    });
     </script>
 </body>
 </html>
+
