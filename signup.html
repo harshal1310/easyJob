@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Search Website</title>
+  <style>
+    /* General Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    a {
+      text-decoration: none;
+      color: #007BFF;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    header, footer {
+      background-color: #F0F0F0;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+    }
+    header h1 {
+      margin: 0;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .buttons button, .buttons a {
+      padding: 10px 15px;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .buttons button:hover, .buttons a:hover {
+      background-color: #0056b3;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    main {
+      padding: 20px;
+    }
+    .search input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .job-listing {
+      background-color: #fff;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: calc(33.333% - 20px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .job-title {
+      margin: 0 0 10px 0;
+    }
+    footer {
+      background-color: #333;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      border-top: 1px solid #ddd;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    form input, form select, form button {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: 100%;
+    }
+    form button {
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+    form h2 {
+      margin: 0 0 20px 0;
+    }
+    .password-container {
+      position: relative;
+    }
+    .password-container input {
+      width: 100%;
+      padding-right: 40px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Job Search Website</h1>
+    <div class="buttons">
+        <button id="candidateBtn">Register as Candidate</button>
+        <button id="recruiterBtn">Register as Recruiter</button>
+        <a href="/login">Login</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="search">
+      <input type="text" id="search" placeholder="Search for jobs...">
+    </section>
+    <section class="content" id="jobListings">
+      <div class="job-listing">
+        <h3 class="job-title">Software Developer</h3>
+        <p>Company XYZ</p>
+      </div>
+      <div class="job-listing">
+        <h3 class="job-title">Full Stack Developer</h3>
+        <p>Company ABC</p>
+      </div>
+      <div class="job-listing">
+        <h3 class="job-title">Nodejs Developer</h3>
+        <p>Company DEF</p>
+      </div>
+      <div class="job-listing">
+        <h3 class="job-title">React Developer</h3>
+        <p>Company GHI</p>
+      </div>
+      <div class="job-listing">
+        <h3 class="job-title">Backend Developer</h3>
+        <p>Company JKL</p>
+      </div>
+      <div class="job-listing">
+        <h3 class="job-title">Frontend Developer</h3>
+        <p>Company MNO</p>
+      </div>
+      <div class="job-listing">
+        <h3 class="job-title">Python Developer</h3>
+        <p>Company PQR</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 Job Search Website. All rights reserved.</p>
+    <p>
+      <a href="/privacy">Privacy Policy</a> | 
+      <a href="/terms">Terms of Service</a> | 
+      <a href="/contact">Contact Us</a>
+    </p>
+  </footer>
+
+  <div id="candidateModal" class="modal">
+      <div class="modal-content">
+          <span class="close" id="candidateClose">&times;</span>
+          <form id="candidateForm">
+              <h2>Candidate Registration</h2>
+              <input type="text" id="fullName" placeholder="Full Name" required>
+              <input type="email" id="email" placeholder="Email" required>
+              <div class="password-container">
+                <input type="password" id="password" placeholder="Password" required>
+                <span class="toggle-password" onclick="togglePasswordVisibility('password')">&#128065;</span>
+              </div>
+              <div class="password-container">
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+                <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">&#128065;</span>
+              </div>
+              <!-- Add candidate-specific fields here -->
+              <button type="submit">Submit</button>
+          </form>
+      </div>
+  </div>
+
+  <div id="recruiterModal" class="modal">
+      <div class="modal-content">
+          <span class="close" id="recruiterClose">&times;</span>
+          <form id="recruiterForm">
+              <h2>Recruiter Registration</h2>
+              <input type="text" id="recruiterName" placeholder="Full Name" required>
+              <input type="email" id="recruiteremail" placeholder="Email" required>
+              <div class="password-container">
+                <input type="password" id="recruiterpassword" placeholder="Password" required>
+                <span class="toggle-password" onclick="togglePasswordVisibility('recruiterpassword')">&#128065;</span>
+              </div>
+              <div class="password-container">
+                <input type="password" id="recruiterConfirmPassword" placeholder="Confirm Password" required>
+                <span class="toggle-password" onclick="togglePasswordVisibility('recruiterConfirmPassword')">&#128065;</span>
+              </div>
+              <input type="text" id="companyName" placeholder="Company Name" required>
+              <input type="text" id="website" placeholder="Website">
+              <select id="talentAcquisition" required>
+                  <option value="">Select Role</option>
+                  <option value="Hiring Manager">Hiring Manager</option>
+                  <option value="HR">HR</option>
+                  <option value="Recruiter">Recruiter</option>
+              </select>
+              <select id="companySize" required>
+                  <option value="">Select Company Size</option>
+                  <option value="1-10">1-10</option>
+                  <option value="10-50">10-50</option>
+                  <option value="50-200">50-200</option>
+                  <option value="200-500">200-500</option>
+                  <option value="500+">500+</option>
+              </select>
+              <select id="industry" required>
+                  <option value="">Select Industry</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <!-- Add more industry options as needed -->
+              </select>
+              <!-- Add recruiter-specific fields here -->
+              <button type="submit">Submit</button>
+          </form>
+      </div>
+  </div>
+
+  <script>
+      // Get the modals and buttons
+      const candidateModal = document.getElementById("candidateModal");
+      const recruiterModal = document.getElementById("recruiterModal");
+      const candidateBtn = document.getElementById("candidateBtn");
+      const recruiterBtn = document.getElementById("recruiterBtn");
+      const candidateClose = document.getElementById("candidateClose");
+      const recruiterClose = document.getElementById("recruiterClose");
+
+      // When the user clicks on the button, open the modal
+      candidateBtn.onclick = function() {
+          candidateModal.style.display = "block";
+      }
+      recruiterBtn.onclick = function() {
+          recruiterModal.style.display = "block";
+      }
+
+      // When the user clicks on the close button, close the modal
+      candidateClose.onclick = function() {
+          candidateModal.style.display = "none";
+      }
+      recruiterClose.onclick = function() {
+          recruiterModal.style.display = "none";
+      }
+
+      // When the user clicks anywhere outside of the modal, close it
+      window.onclick = function(event) {
+          if (event.target == candidateModal) {
+              candidateModal.style.display = "none";
+          }
+          if (event.target == recruiterModal) {
+              recruiterModal.style.display = "none";
+          }
+      }
+
+      // Submit candidate form
+      document.getElementById("candidateForm").addEventListener("submit", function(event) {
+          event.preventDefault();
+          const formData = {
+              fullName: document.getElementById("fullName").value,
+              email: document.getElementById("email").value,
+              password: document.getElementById("password").value,
+              confirmPassword: document.getElementById("confirmPassword").value
+          };
+          fetch('/signup/candidate', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(formData)
+          }).then(response => {
+              // Handle response
+              console.log(response);
+                      window.location.href = '/login';
+
+              
+          }).catch(error => {
+              console.error('Error:', error);
+          });
+      });
+
+      // Submit recruiter form
+      document.getElementById("recruiterForm").addEventListener("submit", function(event) {
+          event.preventDefault();
+          const formData = {
+              fullName: document.getElementById("recruiterName").value,
+              email: document.getElementById("recruiteremail").value,
+              password: document.getElementById("recruiterpassword").value,
+              confirmPassword: document.getElementById("recruiterConfirmPassword").value,
+              companyName: document.getElementById("companyName").value,
+              website: document.getElementById("website").value,
+              talentAcquisition: document.getElementById("talentAcquisition").value,
+              companySize: document.getElementById("companySize").value,
+              industry: document.getElementById("industry").value
+          };
+          fetch('/signup/recruiter', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(formData)
+          }).then(response => {
+              // Handle response
+              console.log(response);
+              
+                      window.location.href = '/login';
+
+          }).catch(error => {
+              console.error('Error:', error);
+          });
+      });
+
+      // Search functionality
+      const searchInput = document.getElementById('search');
+      const jobListings = document.getElementById('jobListings');
+
+      searchInput.addEventListener('keyup', (event) => {
+          const searchTerm = event.target.value.toLowerCase();
+          const jobs = jobListings.querySelectorAll('.job-listing');
+
+          for (const job of jobs) {
+              const jobTitle = job.querySelector('.job-title').textContent.toLowerCase();
+              if (jobTitle.includes(searchTerm)) {
+                  job.style.display = 'block';
+              } else {
+                  job.style.display = 'none';
+              }
+          }
+      });
+
+      // Toggle password visibility
+      function togglePasswordVisibility(inputId) {
+          const input = document.getElementById(inputId);
+          if (input.type === "password") {
+              input.type = "text";
+          } else {
+              input.type = "password";
+          }
+      }
+  </script>
+</body>
+</html>
+

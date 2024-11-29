@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiter Dashboard</title>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+
+        header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #495057;
+            padding: 10px;
+            text-align: center;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav li {
+            display: inline-block;
+            margin: 0 15px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 500px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    max-height: 80%; /* Adjust the maximum height */
+    overflow-y: auto; /* Add scrollbars if content exceeds the height */
+}
+
+
+        .popup-content label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        .popup-content input,
+        .popup-content select,
+        .popup-content textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .popup-content textarea {
+            resize: vertical;
+        }
+
+        .popup-content button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            border-radius: 5px;
+        }
+
+        .popup-content button:hover {
+            background-color: #0056b3;
+        }
+
+        .job-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .job-item {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .selected-skills {
+            margin-top: 10px;
+        }
+
+        .selected-skill {
+            display: inline-block;
+            background-color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin-right: 5px;
+        }
+
+        #skillSuggestions .suggestion {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        #skillSuggestions .suggestion:hover {
+            background-color: #f0f0f0;
+        }
+		
+		
+		.popup-content .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: transparent;
+    color: #333;
+    font-size: 18px;
+    border: none;
+    cursor: pointer;
+}
+
+
+        #closePopupButton, #closeShortlistedPopupButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: transparent;
+            color: #333;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Recruiter Dashboard</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="showRecruiterDashboard">Jobs</a></li>
+            <li><a href="short">Shortlisted For Interview</a></li>
+            <li><a href="hired">Hired</a></li>
+        </ul>
+    </nav>
+    <main>
+        <button id="postJobButton">Post Job</button>
+        <div id="jobPopup" class="popup">
+            <div class="popup-content">
+                <button id="closePopupButton">&times;</button>
+                <!-- Job input fields -->
+                <label for="jobTitle">Job Title</label>
+                <input type="text" id="jobTitle" name="jobTitle" required><br><br>
+
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" required><br><br>
+
+                <label for="experienceMin">Years of experience (Min)</label>
+                <select id="experienceMin" name="experienceMin">
+                    <option value="0">Select Min</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select><br><br>
+
+                <label for="experienceMax">Years of experience (Max)</label>
+                <select id="experienceMax" name="experienceMax">
+                    <option value="0">Select Max</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select><br><br>
+
+                <label for="jobDescription">Job Description</label><br>
+                <textarea id="jobDescription" name="jobDescription" rows="4" cols="50" required></textarea><br><br>
+
+                <label for="skills">Skills</label><br>
+                <input type="text" id="skills" name="skills" placeholder="Enter required skills, separated by commas">
+                <div id="skillSuggestions" style="display: none;"></div>
+
+                <div class="selected-skills" id="selectedSkills"></div>
+
+                <br><br>
+
+                <button id="saveButton">Save</button>
+                <button id="updateButton" style="display: none;">Update</button>
+            </div>
+        </div>
+
+        <!-- Job List Section -->
+        <section>
+            <h2>Job List</h2>
+            <ul id="jobList" class="job-list"></ul>
+        </section>
+
+        <!-- Popup for Shortlisted Students -->
+         <div id="shortlistedPopup" class="popup">
+            <div class="popup-content">
+                <h3>Shortlisted Students</h3>
+                <ul id="shortlistedStudents" class="job-list">
+                    <!-- Shortlisted students will be displayed here -->
+                </ul>
+                <button id="closeShortlistedPopupButton">Close</button>
+            </div>
+        </div>
+    </main>
+    <script>
+        // JavaScript code
+   /*     const postJobButton = document.getElementById('postJobButton');
+        const jobPopup = document.getElementById('jobPopup');
+        const closePopupButton = document.getElementById('closePopupButton');
+        const saveButton = document.getElementById('saveButton');
+        const updateButton = document.getElementById('updateButton');
+        const closeShortlistedPopupButton = document.getElementById('closeShortlistedPopupButton');
+        const shortlistedPopup = document.getElementById('shortlistedPopup');
+        const skillsInput = document.getElementById('skills');
+        const skillSuggestions = document.getElementById('skillSuggestions');
+        const selectedSkillsContainer = document.getElementById('selectedSkills');
+
+        let availableSkills = [];
+        let editingJobId = null; // Variable to store the ID of the job being edited
+
+
+        postJobButton.addEventListener('click', () => openPopup());
+
+        closePopupButton.addEventListener('click', () => {
+            jobPopup.style.display = 'none';
+            editingJobId = null; // Reset the editing job ID
+        });
+
+        closeShortlistedPopupButton.addEventListener('click', () => {
+            shortlistedPopup.style.display = 'none';
+        });
+
+        async function fetchSkills() {
+            try {
+                const response = await fetch('/api/skills');
+                const data = await response.json();
+                availableSkills = data.skills;
+            } catch (error) {
+                console.error('Error fetching skills:', error);
+            }
+        }
+
+        fetchSkills();
+
+        skillsInput.addEventListener('input', () => {
+            const input = skillsInput.value.toLowerCase();
+            if (input.length > 0) {
+                const filteredSuggestions = availableSkills.filter(suggestion => suggestion.toLowerCase().startsWith(input));
+                if (filteredSuggestions.length > 0) {
+                    const suggestionItems = filteredSuggestions.map(suggestion => `<div class="suggestion">${suggestion}</div>`).join('');
+                    skillSuggestions.innerHTML = suggestionItems;
+                    skillSuggestions.style.display = 'block';
+                } else {
+                    skillSuggestions.innerHTML = '';
+                    skillSuggestions.style.display = 'none';
+                }
+            } else {
+                skillSuggestions.innerHTML = '';
+                skillSuggestions.style.display = 'none';
+            }
+        });
+
+        skillSuggestions.addEventListener('click', (event) => {
+            if (event.target.classList.contains('suggestion')) {
+                const selectedSkill = event.target.textContent;
+                const selectedSkillElement = document.createElement('div');
+                selectedSkillElement.classList.add('selected-skill');
+                selectedSkillElement.textContent = selectedSkill;
+                selectedSkillsContainer.appendChild(selectedSkillElement);
+                skillsInput.value = ''; // Clear the input field after selecting a skill
+                skillSuggestions.innerHTML = ''; // Clear the suggestions
+                skillSuggestions.style.display = 'none';
+            }
+        });
+
+        saveButton.addEventListener('click', async () => {
+            const jobData = {
+                job_title: document.getElementById('jobTitle').value,
+                location: document.getElementById('location').value,
+                experience_min: document.getElementById('experienceMin').value,
+                experience_max: document.getElementById('experienceMax').value,
+                job_description: document.getElementById('jobDescription').value,
+                skills: Array.from(selectedSkillsContainer.children).map(skill => skill.textContent.trim())
+            };
+
+            try {
+                const response = await fetch('/post-job', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jobData)
+                });
+                const data = await response.json();
+                console.log(data);
+                // Optionally, handle success response here
+            } catch (error) {
+                console.error('Error:', error);
+                // Optionally, handle error response here
+            }
+        });
+
+        updateButton.addEventListener('click', async () => {
+            const jobData = {
+                job_id: editingJobId,
+                job_title: document.getElementById('jobTitle').value,
+                location: document.getElementById('location').value,
+                experience_min: document.getElementById('experienceMin').value,
+                experience_max: document.getElementById('experienceMax').value,
+                job_description: document.getElementById('jobDescription').value,
+                skills: Array.from(selectedSkillsContainer.children).map(skill => skill.textContent.trim())
+            };
+
+            try {
+                const response = await fetch('/update-job', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jobData)
+                });
+                const data = await response.json();
+                console.log(data);
+                // Optionally, handle success response here
+                jobPopup.style.display = 'none';
+            } catch (error) {
+                console.error('Error:', error);
+                // Optionally, handle error response here
+            }
+        });
+
+       
+
+
+
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   // Function to create and append the dropdown for selecting the number of high scorers
+function createDropdown( jobId) {
+    try {
+        const dropdownContainer = document.getElementById('shortlistedPopup');
+        const dropdownContent = dropdownContainer.querySelector('.popup-content');
+
+        // Create the dropdown
+        const dropdown = document.createElement('select');
+        dropdown.id = 'numOfHighScorers';
+
+        // Define the options for the dropdown
+        const options = [5, 10, 15, 20];
+        
+        // Create an option element for each value and append it to the dropdown
+        options.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            dropdown.appendChild(option);
+        });
+
+        // Set the default value to 10
+        dropdown.value = 10;
+
+        // Create the search button
+        const searchButton = document.createElement('button');
+        searchButton.textContent = 'Search';
+        searchButton.id = 'searchButton';
+
+        // Event listener for the search button click event
+        searchButton.addEventListener('click', () => {
+            const numOfHighScorers = dropdown.value;
+			console.log('clicked');
+			console.log(jobId);
+            fetchShortlistedStudents(jobId, numOfHighScorers);
+        });
+
+        // Append the dropdown and search button to the dropdown container
+        dropdownContent.appendChild(dropdown);
+        dropdownContent.appendChild(searchButton);
+
+    } catch (error) {
+        console.error('Error creating dropdown:', error);
+    }
+}
+
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   async function fetchShortlistedStudents(jobId, numOfHighScorers) {
+    try {
+        const response = await fetch(`/api/getHighScorers?jobId=${jobId}&numOfHighScorers=${numOfHighScorers}`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        const shortlistedStudents = document.getElementById('shortlistedStudents');
+        shortlistedStudents.innerHTML = ''; // Clear the previous list
+        data.forEach(student => {
+            const listItem = document.createElement('li');
+            listItem.classList.add('job-item');
+            listItem.innerHTML = `
+                <h3>${student.full_name}</h3>
+                <p><strong>Email:</strong> ${student.email}</p>
+            `;
+            const inviteButton = document.createElement('button');
+            inviteButton.textContent = 'Invite for Interview';
+            inviteButton.addEventListener('click', () => {
+                inviteForInterview(student.id, jobId);
+            });
+            const downloadButton = document.createElement('button');
+            downloadButton.textContent = 'Download Resume';
+            downloadButton.addEventListener('click', () => {
+			
+                window.location.href = `/resume/${jobId}/${student.id}`;
+            });
+            listItem.appendChild(inviteButton);
+            listItem.appendChild(downloadButton);
+            shortlistedStudents.appendChild(listItem);
+        });
+    } catch (error) {
+        console.error('Error fetching shortlisted students:', error);
+    }
+}
+
+// Function to create and append the
+
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+        async function inviteForInterview(candidateId, jobId) {
+            const requestData = { candidateId, jobId };
+
+            try {
+                const response = await fetch('/api/inviteForInterview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to invite candidate for interview');
+                }
+                console.log('Candidate invited for interview successfully');
+            } catch (error) {
+                console.error('Error inviting candidate for interview:', error);
+            }
+        }
+
+       
+	   
+	   
+	   
+	   
+	   
+	   
+	   
+	   window.onload = async function () {
+    try {
+        const response = await fetch('/getPosts');
+        const data = await response.json();
+        const jobList = document.getElementById('jobList');
+
+        data.forEach(job => {
+            const listItem = document.createElement('li');
+            listItem.classList.add('job-item');
+            listItem.innerHTML = `
+                <h3>${job.job_title}</h3>
+                <p><strong>Location:</strong> ${job.location}</p>
+                <p><strong>Experience:</strong> ${job.experience_min} - ${job.experience_max} years</p>
+                <p><strong>Description:</strong> ${job.job_description}</p>
+                <p><strong>Skills:</strong> ${job.skills}</p>
+                <p><strong>Count Applied:</strong> ${job.total_applied}</p>
+                <button class="editButton">Edit</button>
+                <button class="deleteButton">Delete</button>
+                <button class="shortlistButton" data-jobid="${job.job_id}">Shortlist</button>
+            `;
+            jobList.appendChild(listItem);
+
+            const editButton = listItem.querySelector('.editButton');
+            const deleteButton = listItem.querySelector('.deleteButton');
+            const shortlistButton = listItem.querySelector('.shortlistButton');
+
+            editButton.addEventListener('click', () => {
+                openPopup(job);
+            });
+
+            deleteButton.addEventListener('click', () => {
+                // Open a confirmation dialog box
+                if (confirm("Are you sure you want to delete this job?")) {
+                    // If user clicks "OK", proceed with the deletion
+                    deleteJob(job.job_id, listItem);
+                } else {
+                    // If user clicks "Cancel", do nothing
+                    console.log("Deletion canceled");
+                }
+            });
+
+            shortlistButton.addEventListener('click', async (event) => {
+                const jobId = event.target.dataset.jobid;
+                shortlistedPopup.style.display = 'flex';
+                createDropdown(jobId); // Create the dropdown
+                await fetchShortlistedStudents(jobId, 10); // Fetch shortlisted students with default value 10
+            });
+        });
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
+};
+	   
+	   
+	   
+	   
+	   
+
+	   
+	   
+	   
+	   async function deleteJob(jobId, listItem) {
+    try {
+        const response = await fetch(`/delete-job/${jobId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            throw new Error('Failed to delete job');
+        }
+        console.log('Job deleted successfully');
+        listItem.remove(); // Remove the job item from the DOM
+    } catch (error) {
+        console.error('Error deleting job:', error);
+    }
+}
+	   
+	   
+function openPopup(jobData) {
+    const jobPopup = document.getElementById('jobPopup');
+    const saveButton = document.getElementById('saveButton');
+    const updateButton = document.getElementById('updateButton');
+
+    // Function to create a skill element with a remove action
+    function createSkillElement(skill) {
+        const skillElement = document.createElement('div');
+        skillElement.classList.add('selected-skill');
+        skillElement.textContent = skill.trim();
+        skillElement.addEventListener('click', () => {
+            skillElement.remove();
+        });
+        return skillElement;
+    }
+
+    if (jobData) {
+        document.getElementById('jobTitle').value = jobData.job_title;
+        document.getElementById('location').value = jobData.location;
+        document.getElementById('experienceMin').value = jobData.experience_min;
+        document.getElementById('experienceMax').value = jobData.experience_max;
+        document.getElementById('jobDescription').value = jobData.job_description;
+
+        // Clear and populate selected skills
+        const selectedSkillsContainer = document.getElementById('selectedSkills');
+        selectedSkillsContainer.innerHTML = '';
+        jobData.skills.split(',').forEach(skill => {
+            const selectedSkillElement = createSkillElement(skill);
+            selectedSkillsContainer.appendChild(selectedSkillElement);
+        });
+
+        saveButton.style.display = 'none';
+        updateButton.style.display = 'inline-block';
+        updateButton.onclick = async () => {
+            const updatedJobData = {
+                job_title: document.getElementById('jobTitle').value,
+                location: document.getElementById('location').value,
+                experience_min: document.getElementById('experienceMin').value,
+                experience_max: document.getElementById('experienceMax').value,
+                job_description: document.getElementById('jobDescription').value,
+                skills: Array.from(selectedSkillsContainer.children).map(skillElem => skillElem.textContent).join(', ')
+            };
+
+            try {
+                const response = await fetch(`/api/updateJobInfo?jobid=${jobData.job_id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedJobData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update job info');
+                }
+
+                // Optionally, close the popup or refresh the job list here
+                jobPopup.style.display = 'none';
+            } catch (error) {
+                console.error('Error updating job info:', error);
+            }
+        };
+    } else {
+        document.getElementById('jobTitle').value = '';
+        document.getElementById('location').value = '';
+        document.getElementById('experienceMin').value = '0';
+        document.getElementById('experienceMax').value = '0';
+        document.getElementById('jobDescription').value = '';
+        const selectedSkillsContainer = document.getElementById('selectedSkills');
+        selectedSkillsContainer.innerHTML = '';
+        saveButton.style.display = 'inline-block';
+        updateButton.style.display = 'none';
+    }
+    jobPopup.style.display = 'flex';
+}
+
+// Example of adding a skill
+document.getElementById('addSkillButton').addEventListener('click', () => {
+    const newSkill = document.getElementById('newSkillInput').value;
+    if (newSkill) {
+        const selectedSkillsContainer = document.getElementById('selectedSkills');
+        const skillElement = createSkillElement(newSkill);
+        selectedSkillsContainer.appendChild(skillElement);
+        document.getElementById('newSkillInput').value = '';
+    }
+});
+
+*/
+    const postJobButton = document.getElementById('postJobButton');
+    const jobPopup = document.getElementById('jobPopup');
+    const closePopupButton = document.getElementById('closePopupButton');
+    const saveButton = document.getElementById('saveButton');
+    const updateButton = document.getElementById('updateButton');
+    const closeShortlistedPopupButton = document.getElementById('closeShortlistedPopupButton');
+    const shortlistedPopup = document.getElementById('shortlistedPopup');
+    const skillsInput = document.getElementById('skills');
+    const skillSuggestions = document.getElementById('skillSuggestions');
+    const selectedSkillsContainer = document.getElementById('selectedSkills');
+
+    let availableSkills = [];
+    let editingJobId = null;
+
+    postJobButton.addEventListener('click', () => openPopup());
+
+    closePopupButton.addEventListener('click', () => {
+        jobPopup.style.display = 'none';
+        editingJobId = null; // Reset the editing job ID
+    });
+
+    closeShortlistedPopupButton.addEventListener('click', () => {
+        shortlistedPopup.style.display = 'none';
+    });
+
+    async function fetchSkills() {
+        try {
+            const response = await fetch('/api/skills');
+            const data = await response.json();
+            availableSkills = data.skills;
+        } catch (error) {
+            console.error('Error fetching skills:', error);
+        }
+    }
+
+    fetchSkills();
+
+    skillsInput.addEventListener('input', () => {
+        const input = skillsInput.value.toLowerCase();
+        if (input.length > 0) {
+            const filteredSuggestions = availableSkills.filter(suggestion => suggestion.toLowerCase().startsWith(input));
+            if (filteredSuggestions.length > 0) {
+                const suggestionItems = filteredSuggestions.map(suggestion => `<div class="suggestion">${suggestion}</div>`).join('');
+                skillSuggestions.innerHTML = suggestionItems;
+                skillSuggestions.style.display = 'block';
+            } else {
+                skillSuggestions.innerHTML = '';
+                skillSuggestions.style.display = 'none';
+            }
+        } else {
+            skillSuggestions.innerHTML = '';
+            skillSuggestions.style.display = 'none';
+        }
+    });
+
+    skillSuggestions.addEventListener('click', (event) => {
+        if (event.target.classList.contains('suggestion')) {
+            const selectedSkill = event.target.textContent;
+            const selectedSkillElement = createSkillElement(selectedSkill);
+            selectedSkillsContainer.appendChild(selectedSkillElement);
+            skillsInput.value = ''; // Clear the input field after selecting a skill
+            skillSuggestions.innerHTML = ''; // Clear the suggestions
+            skillSuggestions.style.display = 'none';
+        }
+    });
+
+    // Function to create a skill element with a remove action
+    function createSkillElement(skill) {
+        const skillElement = document.createElement('div');
+        skillElement.classList.add('selected-skill');
+        skillElement.textContent = skill.trim();
+        skillElement.addEventListener('click', () => {
+            skillElement.remove();
+        });
+        return skillElement;
+    }
+
+    saveButton.addEventListener('click', async () => {
+        const jobData = {
+            job_title: document.getElementById('jobTitle').value,
+            location: document.getElementById('location').value,
+            experience_min: document.getElementById('experienceMin').value,
+            experience_max: document.getElementById('experienceMax').value,
+            job_description: document.getElementById('jobDescription').value,
+            skills: Array.from(selectedSkillsContainer.children).map(skill => skill.textContent.trim()) // Collect skills from the container
+        };
+
+        if (jobData.skills.length === 0) {
+            alert("Please select at least one skill!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/post-job', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jobData)
+            });
+            const data = await response.json();
+            console.log(data);
+            jobPopup.style.display = 'none'; // Close the popup after saving
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+
+    updateButton.addEventListener('click', async () => {
+        const jobData = {
+            job_id: editingJobId,
+            job_title: document.getElementById('jobTitle').value,
+            location: document.getElementById('location').value,
+            experience_min: document.getElementById('experienceMin').value,
+            experience_max: document.getElementById('experienceMax').value,
+            job_description: document.getElementById('jobDescription').value,
+            skills: Array.from(selectedSkillsContainer.children).map(skill => skill.textContent.trim()) // Collect skills from the container
+        };
+
+        if (jobData.skills.length === 0) {
+            alert("Please select at least one skill!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/update-job', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jobData)
+            });
+            const data = await response.json();
+            console.log(data);
+            jobPopup.style.display = 'none'; // Close the popup after updating
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+
+    window.onload = async function () {
+        try {
+            const response = await fetch('/getPosts');
+            const data = await response.json();
+            const jobList = document.getElementById('jobList');
+
+            data.forEach(job => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('job-item');
+                listItem.innerHTML = `
+                    <h3>${job.job_title}</h3>
+                    <p><strong>Location:</strong> ${job.location}</p>
+                    <p><strong>Experience:</strong> ${job.experience_min} - ${job.experience_max} years</p>
+                    <p><strong>Description:</strong> ${job.job_description}</p>
+                    <p><strong>Skills:</strong> ${job.skills}</p>
+                    <p><strong>Count Applied:</strong> ${job.total_applied}</p>
+                    <button class="editButton">Edit</button>
+                    <button class="deleteButton">Delete</button>
+                    <button class="shortlistButton" data-jobid="${job.job_id}">Shortlist</button>
+                `;
+                jobList.appendChild(listItem);
+
+                const editButton = listItem.querySelector('.editButton');
+                const deleteButton = listItem.querySelector('.deleteButton');
+                const shortlistButton = listItem.querySelector('.shortlistButton');
+
+                editButton.addEventListener('click', () => {
+                    openPopup(job);
+                });
+
+                deleteButton.addEventListener('click', () => {
+                    if (confirm("Are you sure you want to delete this job?")) {
+                        deleteJob(job.job_id, listItem);
+                    } else {
+                        console.log("Deletion canceled");
+                    }
+                });
+
+                shortlistButton.addEventListener('click', async (event) => {
+                    const jobId = event.target.dataset.jobid;
+                    shortlistedPopup.style.display = 'flex';
+                    createDropdown(jobId);
+                    await fetchShortlistedStudents(jobId, 10);
+                });
+            });
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
+
+    async function deleteJob(jobId, listItem) {
+        try {
+            const response = await fetch(`/delete-job/${jobId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to delete job');
+            }
+            console.log('Job deleted successfully');
+            listItem.remove(); // Remove the job item from the DOM
+        } catch (error) {
+            console.error('Error deleting job:', error);
+        }
+    }
+
+    function openPopup(jobData) {
+        const jobPopup = document.getElementById('jobPopup');
+        const saveButton = document.getElementById('saveButton');
+        const updateButton = document.getElementById('updateButton');
+
+        if (jobData) {
+            document.getElementById('jobTitle').value = jobData.job_title;
+            document.getElementById('location').value = jobData.location;
+            document.getElementById('experienceMin').value = jobData.experience_min;
+            document.getElementById('experienceMax').value = jobData.experience_max;
+            document.getElementById('jobDescription').value = jobData.job_description;
+
+            const selectedSkillsContainer = document.getElementById('selectedSkills');
+            selectedSkillsContainer.innerHTML = ''; // Clear any previous selected skills
+            jobData.skills.split(',').forEach(skill => {
+                const selectedSkillElement = createSkillElement(skill);
+                selectedSkillsContainer.appendChild(selectedSkillElement);
+            });
+
+            saveButton.style.display = 'none';
+            updateButton.style.display = 'inline-block';
+            editingJobId = jobData.job_id;
+        } else {
+            document.getElementById('jobTitle').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('experienceMin').value = '0';
+            document.getElementById('experienceMax').value = '0';
+            document.getElementById('jobDescription').value = '';
+            selectedSkillsContainer.innerHTML = '';
+            saveButton.style.display = 'inline-block';
+            updateButton.style.display = 'none';
+        }
+
+        jobPopup.style.display = 'flex';
+    }
+
+	   
+    </script>
+
+</body>
+</html>
