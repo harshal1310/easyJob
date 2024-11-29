@@ -2,157 +2,103 @@ const express = require('express');
 const router = express.Router();
 const connection = require('../DB/conn.js');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' }); // Destination folder for uploaded files
+const path = require('path');
+const fs = require('fs');
 const bodyParser = require('body-parser');
 
+// Middleware
 router.use(express.json());
 router.use(bodyParser.json());
 router.use(express.urlencoded({ extended: true }));
 
-// Route to submit job application
+// Multer setup to handle file upload
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            // Specify the destination folder for file uploads
+            const uploadPath = path.join(__dirname, 'uploads');
+            
+            // Create the directory if it doesn't exist
+            if (!fs.existsSync(uploadPath)) {
+                fs.mkdirSync(uploadPath);
+            }
+
+            // Set the destination folder
+            cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+            // Set the filename format (add .pdf extension if necessary)
+            const fileExtension = path.extname(file.originalname).toLowerCase();
+            const candidateId = req.user ? req.user.id : 'guest';  // Assuming the candidate's ID is in the user object
+            const fileName = `${candidateId}_${Date.now()}${fileExtension}`;
+            cb(null, fileName); // Save the file with the candidate's ID and timestamp
+        }
+    }),
+    fileFilter: (req, file, cb) => {
+        // Allow only PDF files to be uploaded
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Only PDF files are allowed'), false);
+        }
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024 // Limit file size to 5MB
+    }
+});
+
+// Route to submit application
 router.post('/submitApplication', (req, res) => {
     try {
+        // Handle file upload using multer
         upload.single('resume')(req, res, (err) => {
             if (err) {
-                return res.status(400).json({ error: err.message }); // Return error message
+                // Handle errors during file upload (e.g., file size limit exceeded)
+                return res.status(400).json({ error: err.message });
             }
-            
-            // Retrieve form data
+
+            // Retrieve form data from the request body
             const fullName = req.body.fullName;
             const email = req.body.email;
-            const resume = req.file; // Uploaded resume file
+            const resume = req.file; // Uploaded resume file (stored in req.file)
             const jobId = req.body.jobId; // Retrieve jobId from request body
-            const experience = req.body.experience; 
+            const experience = req.body.experience;
+
+            // Check if the file was uploaded
+            if (!resume) {
+                return res.status(400).json({ error: 'Resume file is required' });
+            }
 
             // Insert application record into the database
-            const insertQuery = `INSERT INTO application (candidate_id, job_id, resume, experience, email, submission_time) VALUES (?, ?, ?, ?, ?, NOW())`;
-            const values = [req.user.id, jobId, req.file.filename, experience, email];
+            const insertQuery = `
+                INSERT INTO application (candidate_id, job_id, resume, experience, email, submission_time) 
+                VALUES ($1, $2, $3, $4, $5, NOW())
+            `;
+            const values = [req.user ? req.user.id : 'guest', jobId, resume.filename, experience, email]; // Correctly use PostgreSQL placeholders
 
-            connection.query(insertQuery, values, (error, results, fields) => {
+            // Execute the query
+            connection.query(insertQuery, values, (error, results) => {
                 if (error) {
                     console.error('Error inserting application record:', error);
                     return res.status(500).json({ success: false, message: 'Failed to submit application' });
                 }
+
                 console.log('Application record inserted successfully');
-                res.json({ success: true, message: 'Application submitted successfully', fullName, email });
+                // Return success message with relevant details
+                res.json({
+                    success: true, 
+                    message: 'Application submitted successfully',
+                    fullName,
+                    email,
+                    jobId
+                });
             });
         });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ error: 'Internal server error' }); // Return generic error message
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-
-
-
-router.get('/api/shortlistedForInterview', (req, res) => {
-  const candidate_id = req.user.id; // Assuming req.user.id contains the ID of the logged-in user
-  console.log(candidate_id);
-  const query = `
-  
-  
-  
-  SELECT jp.company_name, jp.job_description, jp.job_title
-FROM shortlisted_candidates sc
-INNER JOIN jobpostings jp ON sc.job_id = jp.job_id
-WHERE sc.candidate_id = ? AND sc.status = 0;
-
-  
-  
-  `;
-
-  connection.query(query, [candidate_id], (err, results) => {
-    if (err) {
-      console.error('Error fetching shortlisted candidate details:', err);
-      res.status(500).json({ error: 'Failed to fetch shortlisted candidate details' });
-      return;
-    }
-
-    if (results.length === 0) {
-      res.status(404).json({ message: 'No shortlisted candidates found' });
-      return;
-    }
-//console.log(results)
-    res.status(200).json(results);
-  });
-});
-
-
-
-router.get('/api/selected', (req, res) => {
-  const candidate_id = req.user.id; // Assuming req.user.id contains the ID of the logged-in user
-  console.log(candidate_id);
-  // SQL query to get details of shortlisted candidates
-  const query = `
-  
-  
-  
-  SELECT jp.company_name, jp.job_description, jp.job_title
-FROM shortlisted_candidates sc
-INNER JOIN jobpostings jp ON sc.job_id = jp.job_id
-WHERE sc.candidate_id = ? AND sc.status = 1;
-
-  
-  
-  `;
-
-  connection.query(query, [candidate_id], (err, results) => {
-    if (err) {
-      console.error('Error fetching shortlisted candidate details:', err);
-      res.status(500).json({ error: 'Failed to fetch shortlisted candidate details' });
-      return;
-    }
-
-    if (results.length === 0) {
-      res.status(404).json({ message: 'No shortlisted candidates found' });
-      return;
-    }
-//console.log(results)
-    res.status(200).json(results);
-  });
-});
-
-
-router.get('/api/getJobs', async (req, res) => {
-    try {
-        const candidateId = req.user.id;
-        
-        let query = `
-            SELECT jp.job_id, 
-                   jp.job_title, 
-                   jp.location, 
-                   jp.experience_min, 
-                   jp.experience_max, 
-                   jp.job_description, 
-                   GROUP_CONCAT(s.skill_name) AS skills,
-                   IF(a.candidate_id IS NOT NULL, 1, 0) AS applied
-            FROM jobpostings jp
-            LEFT JOIN jobskills js ON jp.job_id = js.job_id
-            LEFT JOIN skills s ON js.skill_id = s.skill_id
-            LEFT JOIN (
-                SELECT DISTINCT candidate_id, job_id
-                FROM application 
-                WHERE candidate_id = ?
-            ) a ON jp.job_id = a.job_id
-            GROUP BY jp.job_id;
-        `;
-        
-        const results = await new Promise((resolve, reject) => {
-            connection.query(query, [candidateId], (err, results) => {
-                if (err) reject(err);
-                else resolve(results);
-            });
-        });
-
-        res.json(results);
-    } catch (error) {
-        console.error('Error fetching job data:', error);
-        res.status(500).json({ error: 'Failed to fetch job data' });
-    }
-});
-
-
-
 
 module.exports = router;
+
