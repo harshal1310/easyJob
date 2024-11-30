@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 require('dotenv').config(); 
-const dbUrl = process.env.DB_URL || "postgresql://jobportaldb_zvd9_user:me2CWcgxsoCYn8N8lOR3GWurMf95A5kc@dpg-ct2trbrtq21c73b86lug-a.oregon-postgres.render.com/jobportaldb_zvd9";
-
+//const dbUrl = process.env.DB_URL || "postgresql://jobportaldb_zvd9_user:me2CWcgxsoCYn8N8lOR3GWurMf95A5kc@dpg-ct2trbrtq21c73b86lug-a.oregon-postgres.render.com/jobportaldb_zvd9";
+const dbUrl ="postgresql://jobportaldb_zvd9_user:me2CWcgxsoCYn8N8lOR3GWurMf95A5kc@dpg-ct2trbrtq21c73b86lug-a.oregon-postgres.render.com/jobportaldb_zvd9";
 const connection = new Client({
     connectionString: dbUrl,
     ssl: {
