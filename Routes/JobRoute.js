@@ -18,47 +18,6 @@ router.use(express.urlencoded({ extended: true }));
 // Server-side route to handle filter parameters and return filtered job listings
 
 
-/*
-router.get('/api/getJobs', async (req, res) => {
-    console.log("get jobs")
-    try {
-        const candidateId = req.user.id;
-        
-        let query = `
-            SELECT jp.job_id, 
-                   jp.job_title, 
-                   jp.location, 
-                   jp.experience_min, 
-                   jp.experience_max, 
-                   jp.job_description, 
-                   GROUP_CONCAT(s.skill_name) AS skills,
-                   IF(a.candidate_id IS NOT NULL, 1, 0) AS applied
-            FROM jobpostings jp
-            LEFT JOIN jobskills js ON jp.job_id = js.job_id
-            LEFT JOIN skills s ON js.skill_id = s.skill_id
-            LEFT JOIN (
-                SELECT DISTINCT candidate_id, job_id
-                FROM application 
-                WHERE candidate_id = ?
-            ) a ON jp.job_id = a.job_id
-            GROUP BY jp.job_id;
-        `;
-        
-        const results = await new Promise((resolve, reject) => {
-            connection.query(query, [candidateId], (err, results) => {
-                if (err) reject(err);
-                else resolve(results);
-            });
-        });
-
-        res.json(results);
-    } catch (error) {
-        console.error('Error fetching job data:', error);
-        res.status(500).json({ error: 'Failed to fetch job data' });
-    }
-});
-*/
-
 
 router.get('/api/getJobs', async (req, res) => {
     console.log("get jobs");
@@ -165,26 +124,20 @@ console.log("in shortlisted");
 
 
 
-
-
-
-router.get('/api/shortlistedForInterview', (req, res) => {
+ router.get('/api/shortlistedForInterview', (req, res) => {
   const candidate_id = req.user.id; // Assuming req.user.id contains the ID of the logged-in user
   console.log(candidate_id);
+
   // SQL query to get details of shortlisted candidates
   const query = `
-  
-  
-  
-  SELECT jp.company_name, jp.job_description, jp.job_title
-FROM shortlisted_candidates sc
-INNER JOIN jobpostings jp ON sc.job_id = jp.job_id
-WHERE sc.candidate_id = ? AND sc.status = 0;
-
-  
-  
+    SELECT jp.company_name, jp.job_description, jp.job_title
+    FROM shortlisted_candidates sc
+    INNER JOIN jobpostings jp ON sc.job_id = jp.job_id
+    WHERE sc.candidate_id = $1 AND sc.status = 0;
   `;
+	console.log("in shortlistedFornterview")
 
+  // Execute the query with parameterized input
   connection.query(query, [candidate_id], (err, results) => {
     if (err) {
       console.error('Error fetching shortlisted candidate details:', err);
@@ -192,34 +145,33 @@ WHERE sc.candidate_id = ? AND sc.status = 0;
       return;
     }
 
-    if (results.length === 0) {
-      res.status(404).json({ message: 'No shortlisted candidates found' });
+    if (results.rows.length === 0) {
+      res.status(200).json({ message: 'No shortlisted candidates found' });
       return;
     }
-//console.log(results)
-    res.status(200).json(results);
+	console.log(result.rows)
+    // Send the results back as JSON
+    res.status(200).json(results.rows);
   });
 });
+
+
 
 
 
 router.get('/api/selected', (req, res) => {
   const candidate_id = req.user.id; // Assuming req.user.id contains the ID of the logged-in user
   console.log(candidate_id);
+
   // SQL query to get details of shortlisted candidates
   const query = `
-  
-  
-  
-  SELECT jp.company_name, jp.job_description, jp.job_title
-FROM shortlisted_candidates sc
-INNER JOIN jobpostings jp ON sc.job_id = jp.job_id
-WHERE sc.candidate_id = ? AND sc.status = 1;
-
-  
-  
+    SELECT jp.company_name, jp.job_description, jp.job_title
+    FROM shortlisted_candidates sc
+    INNER JOIN jobpostings jp ON sc.job_id = jp.job_id
+    WHERE sc.candidate_id = $1 AND sc.status = 1;
   `;
 
+  // Execute the query with parameterized input
   connection.query(query, [candidate_id], (err, results) => {
     if (err) {
       console.error('Error fetching shortlisted candidate details:', err);
@@ -227,14 +179,16 @@ WHERE sc.candidate_id = ? AND sc.status = 1;
       return;
     }
 
-    if (results.length === 0) {
+    if (results.rows.length === 0) {
       res.status(404).json({ message: 'No shortlisted candidates found' });
       return;
     }
-//console.log(results)
-    res.status(200).json(results);
+
+    // Send the results back as JSON
+    res.status(200).json(results.rows);
   });
 });
+
 
 
 
